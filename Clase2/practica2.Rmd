@@ -1,0 +1,1497 @@
+---
+title: "Practica 2 AID 2025"
+output: html_document
+---
+
+
+# Introducción
+
+En el análisis previo de los datos es fundamental identificar y tratar dos problemas comunes:  
+1. **Valores Perdidos:** La existencia de datos nulos o ausentes que pueden afectar la calidad de los modelos.  
+2. **Outliers:** Observaciones que se desvían significativamente del comportamiento general de los datos y que pueden distorsionar análisis estadísticos.
+
+
+
+
+# 1. Análisis Previo de los Datos
+
+Antes de aplicar cualquier tratamiento, examinamos la estructura y características de los datos. Creamos un dataset de ejemplo que contiene tanto valores perdidos como posibles outliers.
+
+```{r}
+# Cargar librerías necesarias
+library(tidyverse)
+library(caret)
+library(mice)
+library(outliers)  # Para test de Grubbs y Dixon
+
+var1 <- c(rnorm(1000, mean = 30, sd = 10))
+var2 <- c(rnorm(1000, mean = 0, sd = 10))
+var2 <- var1*3 + var2
+
+p_na <- 0.05  # 5% proba de NA
+p_outlier <- 0.005  # 0.5% proba de outlier
+
+introducir_anomalies <- function(x, p_na, p_outlier) {
+  for (i in seq_along(x)) {
+    rnd <- runif(1)
+    if (rnd < p_na) {
+      x[i] <- NA
+    } else if (rnd < p_na + p_outlier) {
+      x[i] <- 10000 
+    }
+  }
+  return(x)
+}
+
+var1 <- introducir_anomalies(var1, p_na, p_outlier)
+var2 <- introducir_anomalies(var2, p_na, p_outlier)
+
+set.seed(123)
+datos <- tibble(
+  id = 1:1000,
+  variable1 = var1,
+  variable2 = var2
+)
+
+# Mostrar resumen del conjunto de datos
+summary(datos)
+```
+
+Se observa que existen valores NA en ambas variables y algunos valores extremos (10000 en ambas variables).
+
+
+
+# 2. Manejo de Valores Perdidos
+
+## 2.1. Identificación de Valores Perdidos
+
+Para detectar la presencia de valores nulos, utilizamos funciones de R tanto de base como del tidyverse.
+
+```{r}
+# Contar valores perdidos en cada variable
+datos %>% summarise(across(everything(), ~sum(is.na(.))))
+```
+
+
+- **Ojo!:**  
+  - No identifica patrones o dependencias en la ocurrencia de NA (por ejemplo, si se agrupan por categorías).
+
+```{r}
+ggplot(datos, aes(x = variable1, y = variable2)) +
+  geom_point(color = "blue", alpha = 0.6) +  # Scatter plot points
+  geom_smooth(method = "lm", color = "red", se = FALSE) +  # Linear regression line
+  labs(
+    title = "Scatter Plot de Variable1 vs Variable2",
+    x = "Variable 1",
+    y = "Variable 2"
+  ) +
+  theme_minimal()
+
+```
+```{r}
+datos_filtered <- datos %>% drop_na()
+
+lower_q1 <- quantile(datos_filtered$variable1, 0.02)
+upper_q1 <- quantile(datos_filtered$variable1, 0.98)
+lower_q2 <- quantile(datos_filtered$variable2, 0.02)
+upper_q2 <- quantile(datos_filtered$variable2, 0.98)
+
+datos_filtered <- datos_filtered %>%
+  filter(variable1 >= lower_q1, variable1 <= upper_q1,
+         variable2 >= lower_q2, variable2 <= upper_q2)
+
+
+ggplot(datos_filtered, aes(x = variable1, y = variable2)) +
+  geom_point(color = "blue", alpha = 0.6) +  # Scatter plot points
+  geom_smooth(method = "lm", color = "red", se = FALSE) +  # Linear regression line
+  labs(
+    title = "Scatter Plot sacando 2% mas grande y chico",
+    x = "Variable 1",
+    y = "Variable 2"
+  ) +
+  theme_minimal()
+```
+
+
+## 2.2. Imputación de Valores Perdidos
+
+Existen diversas técnicas para imputar valores nulos. A continuación se muestran varias, cada una con sus pros y contras.
+
+### 2.2.1. Eliminación de Observaciones con NA
+
+Se eliminan las filas que contengan algún valor perdido.
+
+```{r}
+datos_omit <- na.omit(datos)
+dim(datos_omit)
+```
+
+- **Ventajas:**  
+  - Método sencillo y rápido.  
+  - Evita introducir supuestos o sesgos derivados de la imputación.
+- **Desventajas:**  
+  - Puede reducir considerablemente el tamaño de la muestra si hay muchos NA.  
+  - Se pierde información potencialmente útil.
+  - Se pueden genenrar sesgos si los datos faltantes no son aleatorios.
+
+### 2.2.2. Imputación Simple con la Media o Mediana
+
+Sustituir los NA por la media (o mediana) de la variable.
+
+```{r}
+# Imputación con la media para variable1
+datos <- datos %>% 
+  mutate(variable1_impute_mean = ifelse(is.na(variable1), mean(variable1, na.rm = TRUE), variable1))
+
+# Imputación con la mediana para variable2
+datos <- datos %>% 
+  mutate(variable2_impute_median = ifelse(is.na(variable2), median(variable2, na.rm = TRUE), variable2))
+```
+
+- **Ventajas:**  
+  - Fácil de implementar y entender.  
+  - Rápido de calcular.
+- **Desventajas:**  
+  - Reduce la variabilidad natural de la variable.  
+  - Puede introducir sesgos, especialmente si la distribución es asimétrica.
+
+### 2.2.3. Imputación mediante Regresión Lineal
+
+Se utiliza la relación entre variables para predecir los valores perdidos.
+
+```{r}
+# Filtrar casos completos para construir el modelo
+modelo <- lm(variable1 ~ variable2, data = datos, na.action = na.exclude)
+
+# Predecir valores perdidos de variable1
+prediccion <- predict(modelo, newdata = datos[is.na(datos$variable1), ])
+
+datos$variable1_impute_lm <- datos$variable1
+datos$variable1_impute_lm[is.na(datos$variable1_impute_lm)] <- prediccion
+```
+
+- **Ventajas:**  
+  - Aprovecha la correlación entre variables.  
+  - Puede mejorar la precisión de la imputación.
+- **Desventajas:**  
+  - Requiere que exista una relación lineal adecuada.  
+  - Es sensible a la presencia de outliers en la variable predictora.
+
+### 2.2.4. Imputación Múltiple con `mice`
+
+Genera varias versiones imputadas y combina los resultados, lo que permite capturar la incertidumbre en la imputación.
+
+```{r}
+# Configurar el proceso de imputación múltiple
+imputacion <- mice(datos[, c("variable1", "variable2")], m = 5, maxit = 50, method = 'pmm', seed = 500)
+# Obtener el dataset imputado (ejemplo de la primera imputación)
+datos_imputados <- complete(imputacion, 1)
+head(datos_imputados)
+```
+
+- **Ventajas:**  
+  - Considera la incertidumbre en los datos imputados.  
+  - Es robusto ante la varianza introducida por los NA.
+- **Desventajas:**  
+  - Computacionalmente más costoso.  
+  - Requiere mayor conocimiento para interpretar correctamente los resultados.
+
+### 2.2.5. Imputación Hot-Deck (Aleatoria)
+
+Se imputan los valores perdidos seleccionando aleatoriamente un valor observado de la misma variable.
+
+```{r}
+# Función para imputación hot-deck
+imputacion_hotdeck <- function(x) {
+  missing <- is.na(x)
+  x[missing] <- sample(x[!missing], sum(missing), replace = TRUE)
+  return(x)
+}
+
+# Aplicar hot-deck a variable2
+datos <- datos %>% mutate(variable2_impute_hotdeck = imputacion_hotdeck(variable2))
+```
+
+- **Ventajas:**  
+  - Preserva la distribución original de la variable.  
+  - Es simple y rápido de implementar.
+- **Desventajas:**  
+  - Introduce aleatoriedad que puede variar entre ejecuciones.  
+  - No aprovecha información de correlación entre variables.
+
+
+
+
+```{r}
+# Cargar librerías necesarias
+library(tidyverse)
+library(caret)
+library(mice)
+library(outliers)  # Para test de Grubbs y Dixon
+n <- 1000
+# Generar variables iniciales
+var1 <- rnorm(n, mean = 30, sd = 10)
+var2 <- rnorm(n, mean = 0, sd = 10)
+var2 <- var1 * 3 + var2
+
+p_na <- 0.05       # 5% de probabilidad de NA
+p_outlier <- 0.005 # 0.5% de probabilidad de outlier
+
+# Función para introducir anomalías (NA y outliers)
+introducir_anomalies <- function(x, p_na, p_outlier) {
+  for (i in seq_along(x)) {
+    rnd <- runif(1)
+    if (rnd < p_na) {
+      x[i] <- NA
+    } else if (rnd < p_na + p_outlier) {
+      x[i] <- 400 
+    }
+  }
+  return(x)
+}
+
+var1 <- introducir_anomalies(var1, p_na, p_outlier)
+var2 <- introducir_anomalies(var2, p_na, p_outlier)
+
+set.seed(123)
+datos <- tibble(
+  id = 1:n,
+  variable1 = var1,
+  variable2 = var2
+)
+
+# Imputación con la mediana
+datos <- datos %>%
+  mutate(
+    variable1_mediana = if_else(is.na(variable1),
+                                median(variable1, na.rm = TRUE),
+                                variable1),
+    variable2_mediana = if_else(is.na(variable2),
+                                median(variable2, na.rm = TRUE),
+                                variable2)
+  )
+
+# Imputación con la media
+datos <- datos %>%
+  mutate(
+    variable1_media = if_else(is.na(variable1),
+                              mean(variable1, na.rm = TRUE),
+                              variable1),
+    variable2_media = if_else(is.na(variable2),
+                              mean(variable2, na.rm = TRUE),
+                              variable2)
+  )
+
+# Imputación mediante modelo lineal
+# Se ajusta un modelo para cada variable utilizando los casos completos:
+# Para imputar variable1 faltante, se usa variable2; y para imputar variable2 faltante, se usa variable1
+datos_lm <- datos %>% filter(variable2<400, variable1<400 )
+
+modelo1 <- lm(variable1 ~ variable2, data = datos_lm)
+modelo2 <- lm(variable2 ~ variable1, data = datos_lm)
+
+# Obtener predicciones para todos los casos
+pred1 <- predict(modelo1, newdata = datos)
+pred2 <- predict(modelo2, newdata = datos)
+
+datos <- datos %>%
+  mutate(
+    variable1_linear = if_else(is.na(variable1) & !is.na(variable2),
+                               pred1,
+                               variable1),
+    variable2_linear = if_else(is.na(variable2) & !is.na(variable1),
+                               pred2,
+                               variable2)
+  )
+
+# Visualizar únicamente las filas donde originalmente había algún NA
+# (es decir, aquellas "coordenadas" donde al menos una de las variables era NA)
+datos_imputados <- datos %>% filter(is.na(variable1) | is.na(variable2))
+print(datos_imputados)
+
+
+```
+
+
+
+```{r}
+
+# Suponiendo que 'datos_imputados' ya está creado y contiene las filas donde había NA
+# Convertir a formato largo para cada método de imputación
+
+original <- datos_imputados %>%
+  select(id, variable1, variable2) %>%
+  mutate(metodo = "Original")
+
+mediana <- datos_imputados %>%
+  select(id, variable1_mediana, variable2_mediana) %>%
+  rename(variable1 = variable1_mediana,
+         variable2 = variable2_mediana) %>%
+  mutate(metodo = "Mediana")
+
+media <- datos_imputados %>%
+  select(id, variable1_media, variable2_media) %>%
+  rename(variable1 = variable1_media,
+         variable2 = variable2_media) %>%
+  mutate(metodo = "Media")
+
+lineal <- datos_imputados %>%
+  select(id, variable1_linear, variable2_linear) %>%
+  rename(variable1 = variable1_linear,
+         variable2 = variable2_linear) %>%
+  mutate(metodo = "Lineal")
+
+# Unir todos los datasets en uno solo
+datos_long <- bind_rows(original, mediana, media, lineal)
+datos_long <- datos_long %>% filter(variable1<400, variable2<400 )
+
+
+# Graficar solo los puntos con sus respectivos colores
+ggplot(datos_long, aes(x = variable1, y = variable2, color = metodo)) +
+  geom_point(alpha = 1) +
+  labs(x = "Variable 1", y = "Variable 2", color = "Metodo de Imputacion") +
+  theme_minimal()
+
+```
+
+# 3. Detección y Tratamiento de Outliers
+
+Los outliers pueden afectar significativamente los resultados de un análisis. A continuación se muestran distintos métodos para detectarlos y tratarlos.
+
+## 3.1. Detección Visual
+
+### 3.1.1. Boxplot
+
+El boxplot es una herramienta gráfica clásica para identificar posibles outliers.
+
+```{r}
+ggplot(datos, aes(y = variable1)) +
+  geom_boxplot(fill = "lightblue") +
+  labs(title = "Boxplot de variable1", y = "variable1") +
+  theme_minimal()
+```
+
+### 3.1.2. Histograma y QQ-Plot
+
+# **QQ-Plot: ¿Qué es y cómo interpretarlo?**
+
+Un **QQ-Plot (Quantile-Quantile Plot)** es una herramienta gráfica utilizada en estadística para comparar la distribución de una variable con una distribución teórica, generalmente una distribución normal. Es útil para verificar si los datos siguen una distribución específica y detectar posibles desviaciones, como colas pesadas, asimetría o valores atípicos.
+
+## **Cómo funciona un QQ-Plot**
+1. **Cuantiles teóricos vs. Cuantiles muestrales**  
+   - Se calculan los cuantiles de los datos observados.
+   - Se comparan con los cuantiles teóricos de la distribución de referencia (por ejemplo, normal).
+  
+2. **Interpretación del gráfico**  
+   - **Si los puntos siguen aproximadamente la línea azul**, los datos tienen una distribución cercana a la teórica (normal).
+   - **Si los puntos se desvían en las colas** (extremos), indica presencia de valores extremos o colas pesadas.
+   - **Si hay curvatura**, sugiere asimetría en los datos.
+
+
+### **1️⃣ Tomar los datos**
+   Se parte de un conjunto de datos \( X = \{x_1, x_2, \dots, x_n\} \) con \( n \) observaciones.
+
+### **2️⃣ Ordenar los datos**
+   - Se ordenan los datos en orden ascendente para obtener los valores \( x_{(1)}, x_{(2)}, \dots, x_{(n)} \), donde \( x_{(i)} \) es el \( i \)-ésimo valor ordenado.
+   - Estos valores representan los **cuantiles muestrales**.
+
+### **3️⃣ Calcular los cuantiles teóricos**
+   - Se asume que los datos siguen una distribución normal teórica con media \( \mu \) y desviación estándar \( \sigma \).
+   - Se calcula el **cuantil teórico esperado** para cada observación \( x_{(i)} \). Para esto, se usa la posición de cada dato en la muestra:
+     \[
+     p_i = \frac{i - 0.5}{n}
+     \]
+     donde \( p_i \) es el percentil estimado para cada dato.
+
+   - Luego, se usa la función inversa de la distribución normal estándar \( \Phi^{-1}(p_i) \) para obtener los valores teóricos:
+     \[
+     q_i = \Phi^{-1}(p_i)
+     \]
+     donde \( q_i \) representa los **cuantiles teóricos** de una distribución normal estándar \( N(0,1) \).
+
+### **4️⃣ Graficar los cuantiles muestrales contra los teóricos**
+   - En el eje **X**, se colocan los cuantiles teóricos \( q_i \).
+   - En el eje **Y**, se colocan los cuantiles muestrales \( x_{(i)} \).
+
+### **5️⃣ Agregar la línea de referencia**
+   - Se traza una línea recta \( y = ax + b \) ajustada por regresión, donde \( a \) y \( b \) corresponden a la media y la desviación estándar de la muestra.
+   - Si los datos siguen una distribución normal, los puntos deberían alinearse con esta línea.
+
+
+
+## **Ejemplo Numérico**
+Supongamos que tenemos los siguientes datos:
+
+\[
+X = \{2.3, 2.9, 3.1, 3.8, 4.2, 4.8, 5.5\}
+\]
+
+1. **Ordenamos los datos**:  
+   \[
+   (2.3, 2.9, 3.1, 3.8, 4.2, 4.8, 5.5)
+   \]
+
+2. **Calculamos los cuantiles teóricos** (con \( n=7 \)) usando:
+
+   \[
+   p_i = \frac{i - 0.5}{n}, \quad i = 1,2,...,7
+   \]
+
+   Obtenemos los valores de \( p_i \):
+
+   \[
+   (0.07, 0.21, 0.36, 0.50, 0.64, 0.79, 0.93)
+   \]
+
+   Luego, aplicamos la función inversa de la normal estándar \( \Phi^{-1}(p_i) \) para obtener:
+
+   \[
+   (-1.47, -0.81, -0.36, 0.00, 0.36, 0.81, 1.47)
+   \]
+
+3. **Graficamos los puntos**:  
+   - En **X**, ponemos los cuantiles teóricos.
+   - En **Y**, los valores ordenados de la muestra.
+   - Si los datos son normales, los puntos estarán cerca de una línea recta.
+
+
+
+```{r}
+# Histograma
+ggplot(datos, aes(x = variable2)) +
+  geom_histogram(fill = "salmon", color = "black", bins = 20) +
+  labs(title = "Histograma de variable2", x = "variable2") +
+  theme_minimal()
+
+# QQ-Plot
+ggplot(datos, aes(sample = variable2)) +
+  stat_qq() +
+  stat_qq_line(color = "blue") +
+  labs(title = "QQ-Plot de variable2") +
+  theme_minimal()
+```
+
+## 3.2. Detección mediante Estandarización (Z-scores)
+
+Calculamos el z-score para identificar observaciones que se alejen más de 3 desviaciones estándar de la media.
+
+```{r}
+datos <- datos %>% mutate(z_variable1 = abs(scale(variable1)))
+outliers_z <- datos %>% filter(z_variable1 > 3)
+outliers_z
+```
+
+- **Ventajas:**  
+  - Método simple y universal para distribuciones aproximadamente normales.
+- **Desventajas:**  
+  - No funciona bien para distribuciones muy asimétricas o con colas pesadas.
+
+## 3.3. Detección con el Método del IQR
+
+Se calculan el primer (Q1) y tercer cuartil (Q3) y se definen como outliers aquellos puntos que se encuentran fuera de \[Q1 - 1.5·IQR, Q3 + 1.5·IQR\].
+
+```{r}
+# Calcular cuartiles e IQR para variable2
+q1 <- quantile(datos$variable2, 0.25, na.rm = TRUE)
+q3 <- quantile(datos$variable2, 0.75, na.rm = TRUE)
+iqr <- q3 - q1
+
+# Definir límites
+limite_inferior <- q1 - 1.5 * iqr
+limite_superior <- q3 + 1.5 * iqr
+
+# Filtrar outliers
+outliers_iqr <- datos %>% filter(variable2 < limite_inferior | variable2 > limite_superior)
+outliers_iqr
+```
+
+- **Ventajas:**  
+  - No asume normalidad y es robusto frente a la presencia de outliers.
+- **Desventajas:**  
+  - Puede clasificar como outliers valores válidos en distribuciones muy sesgadas.
+
+## 3.4. Test de Grubbs
+
+Identifica el valor extremo más alejado de la media en una distribución normal (se remueven NA).
+
+### **Test de Grubbs: Detección de Valores Atípicos en una Distribución Normal**
+
+El **Test de Grubbs** es una prueba estadística utilizada para detectar valores atípicos en un conjunto de datos que sigue una distribución normal. Su objetivo es identificar si el valor extremo más alejado de la media es significativamente diferente del resto de los datos.
+
+
+
+
+### **1. Formular la Hipótesis**
+- **Hipótesis Nula (\(H_0\))**: No hay valores atípicos en los datos, es decir, todos los valores provienen de la misma distribución normal.
+- **Hipótesis Alternativa (\(H_A\))**: Existe al menos un valor atípico en los datos.
+
+### **2. Calcular la Estadística de Grubbs**
+La estadística del test se calcula como:
+
+\[
+G = \frac{\max |X_i - \bar{X}|}{s}
+\]
+
+Donde:
+- \( X_i \) es el valor más alejado de la media (\(\bar{X}\)).
+- \( \bar{X} \) es la media de los datos.
+- \( s \) es la desviación estándar muestral.
+
+### **3. Comparar con el Valor Crítico**
+El valor crítico de \( G \) se obtiene de una tabla de referencia o mediante software estadístico. Si \( G \) es mayor que el valor crítico para un nivel de significancia (\(\alpha\), típicamente 0.05), se rechaza \( H_0 \) y se considera el dato como un valor atípico.
+
+
+
+### **4. Interpretación del Resultado**
+- Si el valor p (\( p \)-value) es menor que el nivel de significancia (\(\alpha\)), rechazamos \(H_0\) y concluimos que el valor extremo es un atípico.
+- Si el valor p es mayor que \(\alpha\), no se rechaza \(H_0\), lo que indica que no hay evidencia suficiente para considerar un valor como atípico.
+
+### **5. Posibles Acciones**
+- Si se detectan valores atípicos, se pueden eliminar o analizar su causa antes de tomar decisiones sobre los datos.
+- Si no hay valores atípicos detectados, el conjunto de datos se considera limpio respecto a valores extremos.
+
+
+
+### **Consideraciones**
+- El test de Grubbs solo detecta un valor atípico por vez. Si hay varios valores atípicos, se debe aplicar iterativamente.
+- Asume que los datos siguen una distribución normal. Si los datos no son normales, se deben usar otros métodos como el test de **Dixon** o el **IQR (Rango Intercuartílico)**.
+
+
+
+
+```{r}
+grubbs_result <- grubbs.test(na.omit(datos$variable1))
+grubbs_result
+```
+
+### **Test de Dixon: Detección de Valores Atípicos en Muestras Pequeñas**
+
+El **Test de Dixon** es una prueba estadística diseñada para identificar valores atípicos en conjuntos de datos pequeños o medianos. Es especialmente útil cuando el tamaño de la muestra es **menor o igual a 30**, ya que en muestras grandes otros métodos como el test de Grubbs o el análisis basado en cuartiles son más adecuados.
+
+
+
+## **Paso a Paso del Test de Dixon**
+
+### **1. Formular la Hipótesis**
+- **Hipótesis Nula (\(H_0\))**: No hay valores atípicos en los datos.
+- **Hipótesis Alternativa (\(H_A\))**: Al menos un valor en los datos es un valor atípico.
+
+### **2. Calcular la Estadística de Dixon**
+El test de Dixon calcula una estadística basada en la distancia entre el valor más extremo y el resto de la distribución. Existen diferentes fórmulas dependiendo de si se considera el menor o el mayor valor como sospechoso de ser un outlier. La estadística general es:
+
+\[
+Q = \frac{x_{\text{extremo}} - x_{\text{más cercano}}}{x_{\text{máximo}} - x_{\text{mínimo}}}
+\]
+
+Donde:
+- \( x_{\text{extremo}} \) es el valor sospechoso de ser un outlier (mínimo o máximo del conjunto de datos).
+- \( x_{\text{más cercano}} \) es el valor más cercano a \( x_{\text{extremo}} \).
+- \( x_{\text{máximo}} \) y \( x_{\text{mínimo}} \) son los valores máximos y mínimos del conjunto de datos.
+
+El valor de \( Q \) se compara con valores críticos tabulados. Si \( Q \) es mayor que el valor crítico correspondiente al tamaño de la muestra y nivel de significancia (\(\alpha\), típicamente 0.05), se considera que el valor extremo es un **outlier significativo**.
+
+
+
+## **¿Por qué el Test de Dixon se usa para muestras de 30 o menos?**
+1. **Precisión en muestras pequeñas:**  
+   - Para tamaños mayores a 30, la probabilidad de obtener valores extremos debido al azar es más alta.
+   - Métodos como Grubbs, IQR o tests basados en la desviación estándar son más apropiados para muestras grandes.
+
+2. **Suposición de normalidad en muestras pequeñas:**  
+   - El test de Dixon funciona mejor cuando la muestra sigue una distribución aproximadamente normal. En muestras grandes, la normalidad es más fácil de verificar y otros métodos pueden ser más efectivos.
+
+3. **Valores críticos predefinidos:**  
+   - Los valores críticos del test de Dixon están tabulados solo hasta muestras de tamaño 30.  
+   - Para muestras grandes, la tabla no es tan confiable y se requieren métodos más robustos.
+
+
+
+## **4. Implementación en R**
+El código en R implementa el test de Dixon de la siguiente manera:
+
+```{r}
+# Instalar el paquete si no está instalado
+install.packages("outliers")
+
+# Cargar la librería
+library(outliers)
+
+# Contar la cantidad de datos no nulos (sin NA)
+sample_size <- sum(!is.na(datos$variable1))
+
+# Aplicar la prueba de Dixon solo si la muestra es <= 30
+if (sample_size > 30) {
+  submuestra <- sample(na.omit(datos$variable1), 30)  # Seleccionar una submuestra de 30 elementos
+  dixon_result <- dixon.test(submuestra)  # Aplicar test de Dixon
+  print(dixon_result)
+} else {
+  dixon_result <- dixon.test(na.omit(datos$variable1))  # Aplicar test directamente
+  print(dixon_result)
+}
+```
+
+
+
+## **5. Interpretación del Resultado**
+- **Si el valor p (\( p \)-value) es menor que 0.05** → Se rechaza \(H_0\) y se concluye que hay al menos un valor atípico en los datos.
+- **Si el valor p es mayor que 0.05** → No se puede afirmar que haya valores atípicos.
+
+
+
+
+## 3.6. Tratamiento de Outliers
+
+Una vez identificados los outliers, existen diversas estrategias para su tratamiento.
+
+### 3.6.1. Eliminación de Outliers
+
+Se eliminan las observaciones detectadas.
+
+```{r}
+datos_sin_outliers <- datos %>% 
+  filter(!(variable2 < limite_inferior | variable2 > limite_superior))
+dim(datos_sin_outliers)
+```
+
+- **Ventajas:**  
+  - Elimina la influencia de valores extremos en el análisis.
+- **Desventajas:**  
+  - Puede llevar a pérdida de información y a sesgar la muestra si los outliers son parte de la variabilidad real.
+
+### 3.6.2. Winsorización
+
+Consiste en reemplazar los valores extremos por los percentiles de corte (por ejemplo, al 5% y 95%).
+
+```{r}
+winsorizacion <- function(x, lower = 0.05, upper = 0.95) {
+  quantiles <- quantile(x, probs = c(lower, upper), na.rm = TRUE)
+  x[x < quantiles[1]] <- quantiles[1]
+  x[x > quantiles[2]] <- quantiles[2]
+  return(x)
+}
+
+datos <- datos %>% 
+  mutate(variable2_winsorizada = winsorizacion(variable2, 0.05, 0.95))
+```
+
+- **Ventajas:**  
+  - Reduce el efecto de los outliers sin eliminarlos por completo.  
+  - Conserva el tamaño de la muestra.
+- **Desventajas:**  
+  - Modifica la distribución de la variable.  
+  - Puede ocultar la existencia de valores extremos reales.
+
+
+A continuación se presenta un ejemplo de notebook en R estructurado en tres secciones:  
+1. **Introducción del Dataset:** Se prepara el dataset real (airquality) incluyendo la introducción de valores extremos (outliers) y valores perdidos (NA).  
+2. **Ejercicios:** Se listan los ejercicios que deberán realizar los estudiantes, con indicaciones y código base.  
+3. **Resoluciones Paso a Paso:** Se ofrecen las soluciones completas de cada ejercicio, explicadas paso a paso.
+
+
+
+# Dataset de ejercicio
+
+En el dataset *airquality* se introducen valores extremos en la variable *Temp* (simulando outliers) y se mantienen los valores NA presentes en variables como *Ozone* y *Solar.R*.
+
+```{r}
+# Cargar las librerías necesarias
+library(dplyr)
+library(ggplot2)
+
+# Cargar el dataset real
+datos <- airquality
+
+# Introducir outliers en 'Temp': se duplican el valor en el 5% de las observaciones
+set.seed(123)
+indices_extremos <- sample(1:nrow(datos), size = round(0.05 * nrow(datos)))
+datos$Temp[indices_extremos] <- datos$Temp[indices_extremos] * 2
+
+# Visualizar un resumen del dataset modificado
+summary(datos)
+
+# Nota: El dataset 'datos' presenta NA en variables como Ozone y Solar.R, lo cual es útil para la práctica.
+```
+
+
+
+# Ejercicios
+
+
+### Ejercicio 1: Detección de NA  
+- Calcular la proporción de valores perdidos en cada variable.  
+- **Pista:** Utilizar `summarise` y `is.na()`.
+
+### Ejercicio 2: Comparación de Imputaciones en *Ozone*  
+
+  1. Imputar los valores NA en la variable *Ozone* usando la media.  
+  2. Imputar los valores NA usando una técnica hot-deck (reemplazo aleatorio).  
+  3. Comparar las distribuciones (mediante resúmenes estadísticos y gráficos) entre la versión original (casos completos) y las versiones imputadas.
+
+### Ejercicio 3: Imputación por Regresión  
+
+  1. Construir un modelo de regresión lineal para imputar los NA en *Ozone* a partir de *Solar.R*.  
+  2. Comparar el resumen estadístico de la imputación por regresión con la imputación simple (por la media).  
+
+### Ejercicio 4: Detección de Outliers con IQR en *Temp*  
+
+  1. Detectar outliers en *Temp* utilizando el método IQR.  
+  2. Generar un nuevo dataset sin los outliers.  
+  3. Comparar la media y la desviación estándar antes y después de eliminar los outliers.
+
+### Ejercicio 5: Winsorización vs. Eliminación en *Temp*  
+
+  1. Aplicar winsorización (al 5% y 95%) a la variable *Temp*.  
+  2. Comparar los resultados de winsorización con la eliminación de outliers (obtenida en el ejercicio 4) mediante resúmenes estadísticos y gráficos de densidad.
+
+### Ejercicio 6: Test Estadísticos de Outliers en *Ozone*  
+  1. Aplicar el test de Grubbs y el test de Dixon en *Ozone* para detectar outliers.  
+  2. Discutir en qué situaciones es recomendable usar uno u otro test.
+
+### Ejercicio 7: Uso de Imputación Múltiple con el dataset *mtcars*  
+  1. Utilizar el dataset *mtcars* y modificar la variable *mpg* introduciendo NA de forma aleatoria (10% de los datos).  
+  2. Aplicar imputación múltiple utilizando el paquete **mice** para imputar los valores NA.  
+  3. Comparar la distribución de *mpg* antes y después de la imputación (mediante histogramas y resúmenes).
+
+
+
+# Sección 3: Resoluciones Paso a Paso
+
+
+## Ejercicio 1: Detección de NA
+
+```{r}
+# Calcular la proporción de NA en cada variable
+proporcion_NA <- datos %>% summarise(across(everything(), ~mean(is.na(.))))
+print(proporcion_NA)
+```
+
+## Ejercicio 2: Comparación de Imputaciones en *Ozone*
+
+```{r}
+# (a) Imputación con la media en 'Ozone'
+datos <- datos %>% 
+  mutate(Ozone_impute_mean = ifelse(is.na(Ozone), mean(Ozone, na.rm = TRUE), Ozone))
+
+# (b) Imputación hot-deck para 'Ozone'
+imputacion_hotdeck <- function(x) {
+  missing <- is.na(x)
+  x[missing] <- sample(x[!missing], sum(missing), replace = TRUE)
+  return(x)
+}
+
+datos <- datos %>% mutate(Ozone_impute_hotdeck = imputacion_hotdeck(Ozone))
+
+# Resumen estadístico y cálculo de la desviación estándar
+cat("Imputación con la media:\n")
+print(summary(datos$Ozone_impute_mean))
+cat("SD:", sd(datos$Ozone_impute_mean, na.rm = TRUE), "\n\n")
+
+cat("Imputación hot-deck:\n")
+print(summary(datos$Ozone_impute_hotdeck))
+cat("SD:", sd(datos$Ozone_impute_hotdeck, na.rm = TRUE), "\n\n")
+
+# Comparación con la distribución original (solo casos sin NA)
+datos_completos <- datos %>% filter(!is.na(Ozone))
+cat("Datos originales (sin NA):\n")
+print(summary(datos_completos$Ozone))
+cat("SD:", sd(datos_completos$Ozone), "\n")
+```
+
+## Ejercicio 3: Imputación por Regresión
+
+```{r}
+# Construir un modelo de regresión lineal para imputar 'Ozone' a partir de 'Solar.R'
+modelo <- lm(Ozone ~ Solar.R, data = datos, na.action = na.exclude)
+summary(modelo)
+
+# Imputación por regresión: predecir valores NA en 'Ozone'
+prediccion <- predict(modelo, newdata = datos[is.na(datos$Ozone), ])
+datos$Ozone_impute_lm <- datos$Ozone
+datos$Ozone_impute_lm[is.na(datos$Ozone_impute_lm)] <- prediccion
+
+# Comparación de resúmenes
+cat("Imputación por regresión (Ozone):\n")
+print(summary(datos$Ozone_impute_lm))
+cat("Comparación con imputación con la media:\n")
+print(summary(datos$Ozone_impute_mean))
+
+# Supuestos: se asume que existe una relación lineal entre Ozone y Solar.R, con homocedasticidad y errores normalmente distribuidos.
+```
+
+## Ejercicio 4: Detección de Outliers con IQR en *Temp*
+
+```{r}
+# Cálculo de cuartiles, IQR y límites para 'Temp'
+q1 <- quantile(datos$Temp, 0.25, na.rm = TRUE)
+q3 <- quantile(datos$Temp, 0.75, na.rm = TRUE)
+iqr <- q3 - q1
+limite_inferior <- q1 - 1.5 * iqr
+limite_superior <- q3 + 1.5 * iqr
+
+# Detectar outliers
+outliers <- datos %>% filter(Temp < limite_inferior | Temp > limite_superior)
+cat("Outliers en 'Temp':\n")
+print(outliers)
+
+# Crear un dataset sin outliers
+datos_sin_outliers <- datos %>% filter(Temp >= limite_inferior & Temp <= limite_superior)
+
+# Comparar media y desviación estándar
+media_original <- mean(datos$Temp, na.rm = TRUE)
+sd_original <- sd(datos$Temp, na.rm = TRUE)
+media_sin <- mean(datos_sin_outliers$Temp, na.rm = TRUE)
+sd_sin <- sd(datos_sin_outliers$Temp, na.rm = TRUE)
+
+cat("Media y SD en 'Temp':\n")
+print(c("Media original" = media_original, "SD original" = sd_original,
+        "Media sin outliers" = media_sin, "SD sin outliers" = sd_sin))
+```
+
+## Ejercicio 5: Winsorización vs. Eliminación en *Temp*
+
+```{r}
+# Función para winsorización
+winsorizacion <- function(x, lower, upper) {
+  qnt <- quantile(x, probs = c(lower, upper), na.rm = TRUE)
+  x[x < qnt[1]] <- qnt[1]
+  x[x > qnt[2]] <- qnt[2]
+  return(x)
+}
+
+# Aplicar winsorización en 'Temp'
+datos <- datos %>% mutate(Temp_winsorizada = winsorizacion(Temp, 0.05, 0.95))
+
+# Resúmenes estadísticos
+cat("Resumen 'Temp' original:\n")
+print(summary(datos$Temp))
+cat("\nResumen 'Temp' winsorizada:\n")
+print(summary(datos$Temp_winsorizada))
+cat("\nResumen 'Temp' sin outliers (eliminación):\n")
+print(summary(datos_sin_outliers$Temp))
+
+# Comparación gráfica: gráficos de densidad
+ggplot(datos, aes(x = Temp)) +
+  geom_density(fill = "gray", alpha = 0.5) +
+  labs(title = "Densidad de Temp - Original")
+
+ggplot(datos, aes(x = Temp_winsorizada)) +
+  geom_density(fill = "blue", alpha = 0.5) +
+  labs(title = "Densidad de Temp - Winsorizada")
+
+ggplot(datos_sin_outliers, aes(x = Temp)) +
+  geom_density(fill = "green", alpha = 0.5) +
+  labs(title = "Densidad de Temp - Sin Outliers")
+```
+
+## Ejercicio 6: Test Estadísticos de Outliers en *Ozone*
+
+> **Nota:** Para estos tests es necesario el paquete **outliers**.
+
+```{r}
+library(outliers)
+
+# Test de Grubbs para 'Ozone'
+grubbs_result <- grubbs.test(na.omit(datos$Ozone))
+cat("Resultado del test de Grubbs en 'Ozone':\n")
+print(grubbs_result)
+
+# Test de Dixon para 'Ozone'
+sample_size <- sum(!is.na(datos$Ozone))
+if (sample_size > 30) {
+  submuestra <- sample(na.omit(datos$Ozone), 30)
+  dixon_result <- dixon.test(submuestra)
+  cat("Resultado del test de Dixon (muestra de 30) en 'Ozone':\n")
+  print(dixon_result)
+} else {
+  dixon_result <- dixon.test(na.omit(datos$Ozone))
+  cat("Resultado del test de Dixon en 'Ozone':\n")
+  print(dixon_result)
+}
+
+# Comentario: El test de Grubbs es adecuado para detectar un único outlier asumiendo normalidad,
+# mientras que el test de Dixon es útil en muestras pequeñas o cuando se sospecha de múltiples extremos.
+```
+
+## Ejercicio 7: Uso de Imputación Múltiple con el dataset *mtcars*
+
+```{r}
+library(mice)
+
+# Copiar el dataset mtcars
+data("mtcars")
+mtcars_mod <- mtcars
+
+# Introducir NA aleatorios en 'mpg' (10% de las observaciones)
+set.seed(123)
+na_indices <- sample(1:nrow(mtcars_mod), size = round(0.1 * nrow(mtcars_mod)))
+mtcars_mod$mpg[na_indices] <- NA
+
+# Resumen de 'mpg' con NA
+cat("Resumen de 'mpg' en mtcars_mod (con NA):\n")
+print(summary(mtcars_mod$mpg))
+
+# Aplicar imputación múltiple con mice para la variable 'mpg'
+imputacion_mtcars <- mice(mtcars_mod, m = 5, maxit = 50, method = 'pmm', seed = 500)
+
+# Completar los datos imputados (se elige la primera imputación)
+mtcars_imputed <- complete(imputacion_mtcars, 1)
+
+# Ver resumen de 'mpg' después de la imputación
+cat("Resumen de 'mpg' en mtcars_imputed:\n")
+print(summary(mtcars_imputed$mpg))
+
+# Histogramas comparativos
+par(mfrow = c(1,2))
+hist(mtcars$mpg, main = "Histograma de mpg - Original", xlab = "mpg", col = "gray", breaks = 10)
+hist(mtcars_imputed$mpg, main = "Histograma de mpg - Imputado", xlab = "mpg", col = "blue", breaks = 10)
+par(mfrow = c(1,1))
+```
+
+
+
+# 3. Normalización y Estandarización de Datos
+
+## 3.1. ¿Por qué normalizar o estandarizar?
+
+Muchos algoritmos de aprendizaje automático (como regresión logística, SVM, KNN y PCA) son sensibles a la escala de las variables. Cuando las variables tienen escalas muy diferentes, aquellas con valores más altos pueden dominar el cálculo de distancias o la función objetivo. Normalizar o estandarizar ayuda a:
+  
+- Asegurar que cada variable contribuya de manera equitativa.
+- Mejorar la convergencia en algoritmos iterativos.
+- Facilitar la interpretación de coeficientes en algunos modelos.
+
+## 3.2. Normalización (Min-Max Scaling)
+
+La normalización transforma los valores de una variable para que queden en el rango [0, 1] mediante la fórmula:
+
+$$
+x_{\text{norm}} = \frac{x - \min(x)}{\max(x) - \min(x)}
+$$
+
+### Implementación Manual
+
+```{r}
+# Crear datos de ejemplo
+set.seed(123)
+datos <- data.frame(variable = rnorm(100, mean = 50, sd = 10))
+
+# Normalización manual
+datos$variable_norm <- (datos$variable - min(datos$variable)) / (max(datos$variable) - min(datos$variable))
+summary(datos$variable_norm)
+```
+
+### Usando el paquete `caret`
+
+```{r}
+library(caret)
+preProc_range <- preProcess(datos, method = c("range"))
+datos_norm <- predict(preProc_range, datos)
+head(datos_norm)
+```
+
+La normalización es particularmente útil cuando se desea preservar la forma de la distribución, pero ajustando todos los valores a una escala común.
+
+## 3.3. Estandarización (Z-score Scaling)
+
+La estandarización reescala la variable para que tenga media 0 y desviación estándar 1, utilizando la fórmula:
+
+$$
+z = \frac{x - \mu}{\sigma}
+$$
+
+### Implementación Manual
+
+```{r}
+# Estandarización manual utilizando scale()
+datos$variable_std <- scale(datos$variable)
+summary(datos$variable_std)
+```
+
+### Usando el paquete `caret`
+
+```{r}
+preProc_std <- preProcess(datos, method = c("center", "scale"))
+datos_std_caret <- predict(preProc_std, datos)
+head(datos_std_caret)
+```
+
+La estandarización es muy útil para algoritmos basados en distancias, ya que asegura que las unidades de medida no influyan en el análisis.
+
+# 4. Población y Muestra
+
+## 4.1. Definiciones
+
+- **Población**: Es el conjunto total de datos o elementos de interés sobre los cuales se desea hacer inferencias.
+- **Muestra**: Es un subconjunto representativo extraído de la población que se utiliza para realizar estimaciones o pruebas estadísticas.
+
+## 4.2. Tipos de Muestreo
+
+### Muestreo Probabilístico
+
+- **Aleatorio Simple**: Cada elemento de la población tiene la misma probabilidad de ser seleccionado.
+- **Sistemático**: Se selecciona cada k-ésima observación a partir de un punto inicial aleatorio.
+- **Estratificado**: La población se divide en estratos (subgrupos) y se selecciona una muestra aleatoria dentro de cada estrato para mantener la representatividad.
+- **Por Conglomerados**: Se agrupa la población en conglomerados (por ejemplo, áreas geográficas) y se seleccionan algunos de estos conglomerados al azar.
+
+### Muestreo No Probabilístico
+
+- **Por Conveniencia**: Se elige la muestra con base en la accesibilidad y disponibilidad de los datos.
+- **Por Cuotas**: Se fija una cuota para cada subgrupo basado en características conocidas.
+- **Bola de Nieve**: Los sujetos iniciales recomiendan nuevos sujetos para la muestra.
+
+## 4.3. Selección de Muestra en R
+
+### Muestreo Aleatorio Simple
+
+Utilizando la función `sample`, se extraen elementos al azar:
+
+```{r}
+# Seleccionar 100 valores al azar de 'variable' sin reemplazo
+muestra_simple <- sample(datos$variable, size = 100, replace = FALSE)
+head(muestra_simple)
+```
+
+### Muestreo Estratificado usando `caret`
+
+Si se cuenta con una variable categórica para estratificar, se puede utilizar `createDataPartition` para asegurar que la distribución de los estratos se mantenga en la partición de entrenamiento y prueba.
+
+```{r}
+# Supongamos que añadimos una variable categórica para estratificar
+datos$grupo <- sample(c("A", "B", "C"), size = nrow(datos), replace = TRUE)
+
+library(caret)
+set.seed(123)
+trainIndex <- createDataPartition(datos$grupo, p = 0.7, list = FALSE)
+train <- datos[trainIndex, ]
+test <- datos[-trainIndex, ]
+
+# Revisar la distribución de 'grupo' en la población, entrenamiento y prueba
+table(datos$grupo)
+table(train$grupo)
+table(test$grupo)
+```
+
+
+
+## 5.1. Escalamiento Robusto
+El escalamiento robusto se utiliza cuando la presencia de outliers puede distorsionar las medidas tradicionales (media y desviación estándar). Este método utiliza la mediana y el rango intercuartílico (IQR) para centrar y escalar los datos, según la fórmula:
+
+$$
+x_{\text{robust}} = \frac{x - \text{Mediana}(x)}{IQR(x)}
+$$
+
+```{r}
+# Calcular el escalamiento robusto
+mediana <- median(datos$variable, na.rm = TRUE)
+iqr_val <- IQR(datos$variable, na.rm = TRUE)
+datos$variable_robust <- (datos$variable - mediana) / iqr_val
+summary(datos$variable_robust)
+```
+
+## 5.2. Transformación Logarítmica y Cuantil
+
+### Transformación Logarítmica
+Esta transformación es útil para reducir la asimetría en distribuciones sesgadas. Es recomendable aplicar logaritmo cuando los datos son estrictamente positivos.
+
+```{r}
+# Aplicar transformación logarítmica (se suma 1 para evitar log(0))
+datos$variable_log <- log(datos$variable + 1)
+summary(datos$variable_log)
+```
+
+### Transformación Basada en Cuantiles
+Utilizando transformaciones como la de Yeo-Johnson o Box-Cox se pueden estabilizar las varianzas y aproximar la normalidad. Con el paquete `caret` se puede aplicar fácilmente:
+
+
+### ** Box-Cox Transformation**
+- Se aplica únicamente a datos **positivos** (mayores que 0).
+- Tiene la forma matemática:
+
+  \[
+  X' =
+  \begin{cases} 
+  \frac{X^\lambda - 1}{\lambda}, & \text{si } \lambda \neq 0 \\
+  \log(X), & \text{si } \lambda = 0
+  \end{cases}
+  \]
+
+  Donde \(X'\) es el dato transformado y \(\lambda\) es un parámetro que se elige de manera óptima para normalizar los datos.
+
+### ** Yeo-Johnson Transformation**
+- Puede aplicarse a **valores negativos, positivos y ceros**.
+- Tiene una fórmula distinta dependiendo del signo de \(X\):
+
+  \[
+  X' =
+  \begin{cases} 
+  \frac{(X + 1)^\lambda - 1}{\lambda}, & \text{si } X \geq 0, \lambda \neq 0 \\
+  \log(X + 1), & \text{si } X \geq 0, \lambda = 0 \\
+  \frac{-(|X| + 1)^{(2 - \lambda)} + 1}{2 - \lambda}, & \text{si } X < 0, \lambda \neq 2 \\
+  -\log(|X| + 1), & \text{si } X < 0, \lambda = 2
+  \end{cases}
+  \]
+
+
+
+```{r}
+# Transformación usando el método Yeo-Johnson (aplicable a datos con valores negativos o cero)
+preProc_quantile <- preProcess(datos, method = c("YeoJohnson"))
+datos_quantile <- predict(preProc_quantile, datos)
+head(datos_quantile)
+```
+
+## 5.3. Consideraciones Estadísticas en el Preprocesamiento
+
+- **Normalización (Min-Max Scaling):** Preserva la forma de la distribución, pero es muy sensible a valores extremos.
+- **Estandarización (Z-score Scaling):** Asume una distribución aproximadamente normal y puede ser influenciada por outliers, por lo que a veces es preferible el escalamiento robusto.
+- **Transformaciones Logarítmicas o Cuantiles:** Ayudan a manejar datos sesgados, mejorando la estabilidad de la varianza y facilitando la modelación.
+
+Visualizar la distribución antes y después de las transformaciones es fundamental para evaluar el impacto del preprocesamiento.
+
+```{r}
+library(ggplot2)
+# Comparar la distribución original y la transformada
+ggplot(datos, aes(x = variable)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "white") +
+  labs(title = "Distribucion Original de 'variable'")
+
+ggplot(datos, aes(x = variable_log)) +
+  geom_histogram(bins = 30, fill = "salmon", color = "white") +
+  labs(title = "Distribucion Transformada Logaritmicamente")
+```
+
+# 6. Variantes y Estrategias en Muestreo
+
+## 6.1. Muestreo Sistemático
+
+El muestreo sistemático consiste en seleccionar cada k-ésima observación de la población, lo cual puede ser eficiente si se conoce la estructura subyacente.
+
+```{r}
+# Calcular el intervalo k y seleccionar cada k-ésimo elemento
+k <- floor(nrow(datos) / 20)
+muestra_sistematico <- datos[seq(1, nrow(datos), by = k), ]
+head(muestra_sistematico)
+```
+
+## 6.2. Muestreo por Conglomerados
+
+En este método, se dividen los datos en conglomerados (por ejemplo, grupos geográficos o categóricos) y se selecciona aleatoriamente uno o varios conglomerados completos.
+
+```{r}
+# Suponiendo que 'grupo' representa conglomerados en el dataset:
+# Asignar aleatoriamente grupos a los datos (si no existe esta variable)
+datos$grupo <- sample(c("A", "B", "C", "D"), size = nrow(datos), replace = TRUE)
+
+# Seleccionar aleatoriamente dos conglomerados
+conglomerados_seleccionados <- sample(unique(datos$grupo), size = 2)
+muestra_conglomerados <- subset(datos, grupo %in% conglomerados_seleccionados)
+table(muestra_conglomerados$grupo)
+```
+
+## 6.3. Técnicas de Remuestreo (Bootstrapping)
+
+El bootstrapping es una técnica de remuestreo utilizada en estadística para estimar la distribución de una estadística muestral sin necesidad de asumir una distribución teórica específica. Consiste en generar múltiples muestras de la misma población mediante remuestreo con reemplazo, permitiendo obtener una distribución empírica de la estadística de interés. Esto es útil para estimar errores estándar, intervalos de confianza y la variabilidad de estimadores.
+
+### 6.3.1 Tipos de Bootstrapping
+
+#### Bootstrapping No Paramétrico
+Este método no hace suposiciones sobre la distribución de la población. Se basa en seleccionar repetidamente muestras con reemplazo de la muestra original y calcular la estadística de interés en cada una de ellas. Es ampliamente utilizado en situaciones en las que la distribución subyacente es desconocida o difícil de modelar.
+
+#### Bootstrapping Paramétrico
+A diferencia del enfoque no paramétrico, este método asume una distribución específica para los datos y genera muestras sintéticas a partir de parámetros estimados de la población. Se usa cuando se tiene información previa sobre la distribución de los datos y se desea modelar la variabilidad basándose en dicha distribución.
+
+### 6.3.2 ¿Por qué usar Bootstrapping?
+El bootstrapping es útil en diversas situaciones:
+- Cuando el tamaño de la muestra es pequeño y los métodos asintóticos no son confiables.
+- Cuando la distribución de la población no es conocida o es difícil de modelar.
+- Para estimar la varianza de una estadística y construir intervalos de confianza sin necesidad de supuestos fuertes.
+- Para validar modelos predictivos a través de técnicas como el bootstrap cross-validation.
+
+### 6.3.3 Ejemplo con un Conjunto de Datos Real
+Para ilustrar el uso del bootstrapping, utilizaremos el conjunto de datos `mtcars` de R. En este ejemplo, estimaremos la media del consumo de combustible (`mpg`) y su variabilidad usando bootstrapping no paramétrico.
+```{r}
+library(boot)
+
+# Cargar los datos
+datos <- mtcars
+densidad <- density(datos$mpg)
+print(mean(datos$mpg))
+# Graficar la densidad
+plot(densidad, main="Gráfico de Densidad de MPG", xlab="Millas por galón (mpg)", col="blue", lwd=2)
+polygon(densidad, col=rgb(0, 0, 1, 0.2), border="blue") # Relleno con transparencia
+```
+
+```{r}
+
+
+# Definir función para calcular la media del consumo de combustible
+media_fn <- function(data, indices) {
+  return(mean(data[indices], na.rm = TRUE))
+}
+
+# Aplicar bootstrapping con 1000 replicaciones
+set.seed(123)
+boot_result <- boot(data = datos$mpg, statistic = media_fn, R = 1000)
+print(boot_result)
+plot(boot_result)
+```
+
+El resultado de la función `boot()` nos proporciona:
+- **Estadística original:** La media muestral de `mpg`.
+- **Sesgo:** Diferencia entre la media de los valores bootstrapeados y la estadística original.
+- **Error estándar:** Variabilidad estimada de la media.
+
+Para obtener un intervalo de confianza del 95% basado en los percentiles de la distribución empírica obtenida:
+
+```{r}
+boot.ci(boot_result, type = "perc")
+```
+
+Este intervalo de confianza es útil para evaluar la incertidumbre de la estimación de la media de `mpg`.
+
+### 6.3.4 Bootstrapping Paramétrico
+Para realizar un bootstrapping paramétrico, asumimos que `mpg` sigue una distribución normal con media y desviación estándar estimadas de la muestra original. Generamos nuevas muestras de `mpg` basadas en esta distribución y aplicamos bootstrapping:
+
+```{r}
+param_bootstrap <- function(data, R) {
+  mu <- mean(data, na.rm = TRUE)
+  sigma <- sd(data, na.rm = TRUE)
+  
+  boot_samples <- replicate(R, mean(rnorm(length(data), mean = mu, sd = sigma)))
+  return(boot_samples)
+}
+
+# Aplicamos el bootstrapping paramétrico
+set.seed(123)
+param_results <- param_bootstrap(datos$mpg, R = 1000)
+
+# Estimamos el intervalo de confianza del 95%
+quantile(param_results, probs = c(0.025, 0.975))
+```
+
+En este caso, generamos `R=1000` muestras sintéticas de `mpg` asumiendo una distribución normal. Luego, obtenemos el intervalo de confianza basado en los percentiles de la distribución generada.
+
+## 6.4. Validación de la Representatividad de la Muestra
+
+Comparamps las estadísticas descriptivas de la población y la muestra utilizada para asegurarnos de que la muestra sea representativa.
+
+```{r}
+library(dplyr)
+
+# Estadísticas en la población
+pop_stats <- datos %>%
+  summarise(
+    media = mean(mpg, na.rm = TRUE),
+    mediana = median(mpg, na.rm = TRUE),
+    sd = sd(mpg, na.rm = TRUE)
+  )
+print(pop_stats)
+
+# Extraemos una muestra aleatoria simple
+tamano_muestra <- 30
+set.seed(123)
+muestra_simple <- sample(datos$mpg, tamano_muestra, replace = FALSE)
+
+# Estadísticas en la muestra aleatoria simple
+sample_stats <- data.frame(
+  media = mean(muestra_simple, na.rm = TRUE),
+  mediana = median(muestra_simple, na.rm = TRUE),
+  sd = sd(muestra_simple, na.rm = TRUE)
+)
+print(sample_stats)
+```
+
+
+
+# 7. División en Entrenamiento y Prueba
+
+Una parte esencial del análisis predictivo es dividir el conjunto de datos en dos (o más) subconjuntos:  
+- **Entrenamiento**: Donde se ajusta el modelo.  
+- **Prueba**: Donde se evalúa el desempeño del modelo en datos no vistos.
+
+Esta división ayuda a evitar el sobreajuste y proporciona una estimación realista de la capacidad predictiva.
+
+## 7.1. División usando `caret`
+
+El paquete `caret` facilita la creación de particiones de datos manteniendo la distribución de variables importantes (especialmente en el caso de variables categóricas).
+```{r}
+datos
+```
+
+```{r}
+# Supongamos que 'datos' es nuestro dataset y 'grupo' es una variable de estratificación
+set.seed(123)
+library(caret)
+datos$grupo <- sample(c("A", "B", "C", "D"), size = nrow(datos), replace = TRUE)
+
+# Se utiliza createDataPartition para obtener índices de entrenamiento (70%)
+trainIndex <- createDataPartition(datos$grupo, p = 0.7, list = FALSE)
+train <- datos[trainIndex, ]
+test <- datos[-trainIndex, ]
+
+# Revisar la distribución de la variable estratificada en cada subconjunto
+table(datos$grupo)
+table(train$grupo)
+table(test$grupo)
+```
+
+## 7.2. Ejemplo con un Modelo Simple
+
+Se puede entrenar un modelo, por ejemplo, una regresión lineal, y evaluarlo en el conjunto de prueba.
+
+```{r}
+# Ajustar un modelo de regresión lineal usando el conjunto de entrenamiento
+modelo_lm <- lm(mpg ~ ., data = train)
+
+# Predicción en el conjunto de prueba
+predicciones <- predict(modelo_lm, newdata = test)
+prediccionesTrain <- predict(modelo_lm, newdata = train)
+
+# Comparar las predicciones con los valores reales
+resultados <- data.frame(Real = test$mpg, Predicho = predicciones)
+resultadosTrain <- data.frame(Real = train$mpg, Predicho = prediccionesTrain)
+
+head(resultados)
+
+# Calcular error cuadrático medio (MSE)
+mse <- mean((resultados$Real - resultados$Predicho)^2)
+mseTrain <- mean((resultadosTrain$Real - resultadosTrain$Predicho)^2)
+
+print(paste("MSE Test:", round(mse, 2)))
+print(paste("MSE Train:", round(mseTrain, 2)))
+
+```
+
+# 8. Validación Cruzada
+
+La validación cruzada es una técnica que permite evaluar el rendimiento de un modelo de forma más robusta al dividir los datos en varios pliegues (folds) y promediar el desempeño en cada uno.
+
+## 8.1. k-Fold Cross Validation
+
+Una de las formas más comunes es la validación cruzada k-fold, en la que el conjunto de datos se divide en k partes iguales. Se entrena el modelo k veces, cada vez usando k-1 partes para entrenamiento y la parte restante para prueba.
+
+```{r}
+# Definir un control de entrenamiento para validación cruzada k-fold (por ejemplo, k=10)
+control_cv <- trainControl(method = "cv", number = 10)
+
+# Entrenar el modelo utilizando validación cruzada
+modelo_cv <- train(mpg ~ ., data = train, method = "lm", trControl = control_cv)
+print(modelo_cv)
+```
+
+## 8.2. Leave-One-Out Cross Validation (LOOCV)
+
+El LOOCV es un caso especial de k-fold donde k es igual al número de observaciones. Esto puede ser computacionalmente costoso, pero es útil para conjuntos de datos pequeños.
+
+```{r}
+# Configurar el control para LOOCV
+control_loocv <- trainControl(method = "LOOCV")
+
+# Entrenar el modelo utilizando LOOCV
+modelo_loocv <- train(mpg ~ ., data = train, method = "lm", trControl = control_loocv)
+print(modelo_loocv)
+```
+
+A continuación se presentan nuevos ejercicios utilizando datasets reales de R. Primero se exponen los enunciados de cada ejercicio y, posteriormente, se muestran sus resoluciones correspondientes.
+
+# 9. Ejercicios
+
+## Ejercicio 1: División y Evaluación de un Modelo con *mtcars*
+
+**Enunciado:**  
+Utiliza el dataset `mtcars` para dividirlo en un 70% de entrenamiento y un 30% de prueba. Ajusta un modelo de regresión lineal para predecir el consumo de combustible (`mpg`) en función de la potencia (`hp`) y el peso (`wt`). Evalúa el modelo en el conjunto de prueba calculando el error cuadrático medio (MSE).
+
+## Ejercicio 2: Validación Cruzada k-Fold en un Modelo de Regresión
+
+**Enunciado:**  
+Con el conjunto de entrenamiento obtenido en el Ejercicio 1, realiza una validación cruzada de 10 pliegues para evaluar el rendimiento de un modelo de regresión lineal que prediga `mpg` a partir de `hp` y `wt`. Reporta el RMSE promedio obtenido durante la validación.
+
+## Ejercicio 3: Comparación de Técnicas de Preprocesamiento con *airquality*
+
+**Enunciado:**  
+Utiliza el dataset `airquality` y enfócate en la variable `Ozone`.  
+1. Elimina los valores faltantes de dicha variable.  
+2. Aplica dos técnicas de preprocesamiento:  
+   - **Normalización (Min-Max Scaling):** transforma los datos para que sus valores estén entre 0 y 1.  
+   - **Estandarización (Z-score Scaling):** centra los datos en 0 y los escala de acuerdo con su desviación estándar.  
+3. Visualiza, mediante histogramas, las distribuciones de la variable original, la normalizada y la estandarizada. Comenta las diferencias observadas.
+
+# 9. Resoluciones
+
+## Resolución Ejercicio 1
+
+```{r}
+# Utilizando el dataset mtcars
+data(mtcars)
+set.seed(123)
+
+# División del dataset en 70% entrenamiento y 30% prueba
+indices <- sample(1:nrow(mtcars), size = 0.7 * nrow(mtcars))
+train_ex1 <- mtcars[indices, ]
+test_ex1  <- mtcars[-indices, ]
+
+# Ajustar el modelo de regresión lineal: mpg ~ hp + wt
+modelo_ex1 <- lm(mpg ~ hp + wt, data = train_ex1)
+
+# Realizar predicciones en el conjunto de prueba
+predicciones_ex1 <- predict(modelo_ex1, newdata = test_ex1)
+
+# Calcular el error cuadrático medio (MSE)
+mse_ex1 <- mean((test_ex1$mpg - predicciones_ex1)^2)
+print(paste("MSE del modelo:", round(mse_ex1, 2)))
+```
+
+## Resolución Ejercicio 2
+
+```{r}
+library(caret)
+set.seed(123)
+
+# Definir control de validación cruzada de 10 pliegues
+control_ex2 <- trainControl(method = "cv", number = 10)
+
+# Entrenar el modelo con validación cruzada utilizando el conjunto de entrenamiento
+modelo_ex2 <- train(mpg ~ hp + wt, data = train_ex1, method = "lm", trControl = control_ex2)
+
+# Mostrar los resultados de la validación cruzada
+print(modelo_ex2)
+# El RMSE promedio obtenido se encuentra en modelo_ex2$results$RMSE
+```
+
+## Resolución Ejercicio 3
+
+```{r}
+library(ggplot2)
+data(airquality)
+
+# Seleccionar la variable Ozone y eliminar valores NA
+datos_ex3 <- na.omit(airquality[, "Ozone", drop = FALSE])
+
+# Aplicar Normalización (Min-Max Scaling)
+datos_ex3$Ozone_norm <- (datos_ex3$Ozone - min(datos_ex3$Ozone)) / 
+                        (max(datos_ex3$Ozone) - min(datos_ex3$Ozone))
+
+# Aplicar Estandarización (Z-score Scaling)
+datos_ex3$Ozone_std <- scale(datos_ex3$Ozone)
+
+# Visualizar las distribuciones
+
+# Histograma de la distribución original
+p1 <- ggplot(datos_ex3, aes(x = Ozone)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "white") +
+  labs(title = "Distribucion Original de Ozone")
+
+# Histograma de la distribución normalizada
+p2 <- ggplot(datos_ex3, aes(x = Ozone_norm)) +
+  geom_histogram(bins = 30, fill = "lightgreen", color = "white") +
+  labs(title = "Distribucion Normalizada (Min-Max)")
+
+# Histograma de la distribución estandarizada
+p3 <- ggplot(datos_ex3, aes(x = Ozone_std)) +
+  geom_histogram(bins = 30, fill = "salmon", color = "white") +
+  labs(title = "Distribucion Estandarizada (Z-score)")
+
+# Mostrar las gráficas
+print(p1)
+print(p2)
+print(p3)
+```
