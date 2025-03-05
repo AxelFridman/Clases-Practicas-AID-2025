@@ -178,7 +178,7 @@ ggplot(df_binom, aes(x = x, y = densidad)) +
   Calcular el p‑valor usando la distribución binomial y explique si se rechazaría la hipótesis de moneda justa (usando α = 0.05).  
 - **Pista:** Use `rbinom()`, `pbinom()` y visualice la distribución.
 
-### Ejercicio 4 (Integrador y más extenso): Comparación de Dos Grupos Simulados  
+### Ejercicio 4: Comparación de Dos Grupos Simulados  
 - **Enunciado:**  
   Simulen dos grupos independientes de 50 observaciones cada uno:  
   - Grupo A: datos generados con media 20 y desviación 4.  
@@ -1120,3 +1120,173 @@ ggplot(iris, aes(x = Species, y = Sepal.Length, fill = Species)) +
        x = "Species", y = "Sepal.Length") +
   theme_minimal()
 ```
+
+
+## Test de Independencia
+
+El **test de independencia** se utiliza para determinar si dos variables categóricas están asociadas o si son independientes. Esto se logra mediante el análisis de una tabla de contingencia que resume las frecuencias observadas en cada combinación de categorías y, a partir de ella, se calcula la estadística chi-cuadrado.
+
+### ¿Cómo Funciona?
+
+1. **Construcción de la Tabla de Contingencia:**  
+   Se cuentan las ocurrencias de cada combinación de categorías. Por ejemplo, en el dataset *iris*, podemos crear una variable categórica a partir de *Sepal.Width*:
+   - Se define "Ancho" si el valor es mayor o igual a la mediana.
+   - Se define "Estrecho" si es menor que la mediana.
+
+2. **Cálculo de la Estadística Chi-cuadrado:**  
+   Se comparan las frecuencias observadas con las esperadas (suponiendo independencia). La estadística resultante evalúa la discrepancia entre ambas; un valor alto (con p‑valor pequeño) indica que es poco probable que las diferencias se deban al azar, lo que sugiere que las variables no son independientes.
+
+3. **Interpretación del p‑valor:**  
+   - **p‑valor < 0.05:** Se rechaza la hipótesis nula de independencia y se concluye que existe asociación entre las variables.  
+   - **p‑valor ≥ 0.05:** No se rechaza la hipótesis nula, sugiriendo que no hay evidencia suficiente para afirmar que las variables están asociadas.
+
+### Ejemplo Práctico con el Dataset *iris*
+
+En este ejemplo, se crea la variable categórica **Ancho_Sepal** a partir de *Sepal.Width* y se evalúa si existe asociación entre **Species** y **Ancho_Sepal**.
+
+```{r}
+# Utilizando el dataset iris
+data(iris)
+
+# Crear variable categórica "Ancho_Sepal" a partir de Sepal.Width:
+# "Ancho" si el valor es mayor o igual a la mediana, "Estrecho" si es menor.
+iris$Ancho_Sepal <- ifelse(iris$Sepal.Width >= median(iris$Sepal.Width), "Ancho", "Estrecho")
+
+# Construcción de la tabla de contingencia
+tabla_indep <- table(iris$Species, iris$Ancho_Sepal)
+print(tabla_indep)
+
+# Realización del test de independencia (chi-cuadrado)
+test_indep <- chisq.test(tabla_indep)
+print(test_indep)
+```
+
+### Visualización con ggplot2
+
+La siguiente gráfica muestra la proporción de observaciones en cada categoría de **Ancho_Sepal** para cada **Species**. La visualización facilita la interpretación de la distribución de las frecuencias.
+
+```{r}
+library(ggplot2)
+ggplot(iris, aes(x = Species, fill = Ancho_Sepal)) +
+  geom_bar(position = "fill") +
+  labs(title = "Proporción de 'Ancho_Sepal' según Species",
+       x = "Especie",
+       y = "Proporción",
+       fill = "Ancho_Sepal") +
+  theme_minimal()
+```
+
+---
+
+## Ejercicio Test de independencia
+
+**Enunciado:**  
+Simule un dataset de 200 observaciones con dos variables categóricas:  
+- **Color:** con niveles "Rojo" y "Verde" (donde la probabilidad de "Rojo" es 60% y "Verde" 40%).  
+- **Aprobación:** con niveles "Sí" y "No".  
+  - Para las observaciones de color "Rojo", la probabilidad de "Sí" es 55% y de "No" 45%.  
+  - Para las observaciones de color "Verde", la probabilidad de "Sí" es 50% y de "No" 50%.  
+
+Realice un test de independencia para evaluar si existe relación entre el **Color** y la **Aprobación** y visualice la distribución de las proporciones.
+
+## Ejercicio Bonus
+
+Hagan lo mismo pero en vez de tamaño de muestra fijo en 200, para cada posible tamaño de muestra entre 100 y 4000 (intervalos cada 100), y visualizenlo con el eje x el tamaño de la muestra y en el eje y el p-valor obtenido en el test.
+
+---
+
+### Resolución del Ejercicio
+
+```{r}
+set.seed(123)
+# Generar la variable "Color" con 200 observaciones
+color <- sample(c("Rojo", "Verde"), size = 200, replace = TRUE, prob = c(0.6, 0.4))
+
+# Generar la variable "Aprobación" dependiendo del valor de "Color"
+aprobacion <- sapply(color, function(x) {
+  if (x == "Rojo") {
+    sample(c("Sí", "No"), size = 1, prob = c(0.55, 0.45))
+  } else {
+    sample(c("Sí", "No"), size = 1, prob = c(0.5, 0.5))
+  }
+})
+
+# Crear el dataframe
+datos <- data.frame(Color = color, Aprobacion = aprobacion)
+
+# Construcción de la tabla de contingencia
+tabla_ej <- table(datos$Color, datos$Aprobacion)
+print(tabla_ej)
+
+# Realización del test de independencia
+test_ej <- chisq.test(tabla_ej)
+print(test_ej)
+
+# Visualización de la distribución de las proporciones con ggplot2
+ggplot(datos, aes(x = Color, fill = Aprobacion)) +
+  geom_bar(position = "fill") +
+  labs(title = "Proporción de Aprobación según Color",
+       x = "Color",
+       y = "Proporción",
+       fill = "Aprobación") +
+  theme_minimal()
+```
+## Resolucion ejercicio bonus
+
+```{r}
+set.seed(123)
+library(ggplot2)
+
+# Definir una secuencia de tamaños de muestra de 5 a 400 (pasos de 5)
+tamanos <- seq(100, 4000, by = 100)
+
+# Función para simular el dataset y obtener el p-valor del test de independencia
+obtener_pvalor <- function(n) {
+  # Simular la variable "Color"
+  color <- sample(c("Rojo", "Verde"), size = n, replace = TRUE, prob = c(0.6, 0.4))
+  
+  # Generar la variable "Aprobacion" en función de "Color"
+  aprobacion <- sapply(color, function(x) {
+    if(x == "Rojo") {
+      sample(c("Sí", "No"), size = 1, prob = c(0.55, 0.45))
+    } else {
+      sample(c("Sí", "No"), size = 1, prob = c(0.5, 0.5))
+    }
+  })
+  
+  datos_temp <- data.frame(Color = color, Aprobacion = aprobacion)
+  
+  # Construir la tabla de contingencia. Si falta alguna categoría (por ejemplo, en muestras muy pequeñas),
+  # se rellena con 0 para mantener las dimensiones.
+  tabla <- with(datos_temp, table(factor(Color, levels = c("Rojo", "Verde")),
+                                  factor(Aprobacion, levels = c("Sí", "No"))))
+  
+  # Para tamaños muy pequeños puede ocurrir que no haya suficiente información, por lo que se usa NA
+  if(any(dim(tabla) < 2) || any(tabla == 0)) {
+    p_val <- NA
+  } else {
+    p_val <- chisq.test(tabla)$p.value
+  }
+  
+  return(p_val)
+}
+
+# Aplicar la función a cada tamaño de muestra
+p_valores <- sapply(tamanos, obtener_pvalor)
+
+# Crear dataframe para la visualización
+df_p <- data.frame(Tamano = tamanos, p_valor = p_valores)
+
+# Graficar el p-valor en función del tamaño de la muestra
+ggplot(df_p, aes(x = Tamano, y = p_valor)) +
+  geom_line(color = "darkblue") +
+  geom_point(color = "darkblue") +
+  geom_hline(yintercept = 0.05, linetype = "dashed", color = "red") +  # Línea de rechazo
+  labs(title = "Cambio del p-valor en función del tamaño de la muestra",
+       x = "Tamaño de la muestra",
+       y = "p-valor") +
+  theme_minimal()
+
+
+```
+

@@ -4,7 +4,461 @@ output: html_document
 ---
 
 
-# Introducción
+
+## Funciones de Distribuciones en R
+
+En R, las distribuciones de probabilidad tienen cuatro tipos de funciones:
+
+1. **Funciones de densidad** (`d...`): Devuelven la densidad de probabilidad en un punto.
+2. **Funciones de distribución acumulada** (`p...`): Devuelven la probabilidad acumulada hasta un punto.
+3. **Funciones cuantil o inversas** (`q...`): Devuelven el valor de la variable aleatoria correspondiente a un cuantil dado.
+4. **Funciones generadoras de números aleatorios** (`r...`): Se usan para generar números aleatorios (ya vistas en otra sección).
+
+### **Ejemplo con una Distribución Normal**
+
+```{r normal}
+# Densidad de una normal estándar en x = 1
+dnorm(1, mean = 0, sd = 1)
+
+# Probabilidad acumulada P(X <= 1) en una normal estándar
+pnorm(1, mean = 0, sd = 1)
+
+# Cuantil 90 de una normal con media 2 y desviación estándar 3
+qnorm(0.90, mean = 2, sd = 3)
+
+# Probabilidad de que X esté entre -1 y 1 en una normal estándar
+pnorm(1, mean = 0, sd = 1) - pnorm(-1, mean = 0, sd = 1)
+```
+
+### **Distribución t de Student**
+
+```{r student_t}
+# Densidad de una t de Student con 10 grados de libertad en x = 2
+dt(2, df = 10)
+
+# Probabilidad acumulada P(X <= 2) en una t de Student con 10 grados de libertad
+pt(2, df = 10)
+
+# Cuantil 95% de una t de Student con 10 grados de libertad
+qt(0.95, df = 10)
+```
+
+### **Distribución Chi-cuadrado**
+
+```{r chi_square}
+# Densidad en x = 5 de una chi-cuadrado con 4 grados de libertad
+dchisq(5, df = 4)
+
+# Probabilidad acumulada P(X <= 5) en una chi-cuadrado con 4 grados de libertad
+pchisq(5, df = 4)
+
+# Cuantil 99% de una chi-cuadrado con 4 grados de libertad
+qchisq(0.99, df = 4)
+```
+
+### **Distribución F de Snedecor**
+
+```{r f_distribution}
+# Densidad en x = 3 de una F con 5 y 10 grados de libertad
+df(3, df1 = 5, df2 = 10)
+
+# Probabilidad acumulada P(X <= 3) en una F con 5 y 10 grados de libertad
+pf(3, df1 = 5, df2 = 10)
+
+# Cuantil 95% de una F con 5 y 10 grados de libertad
+qf(0.95, df1 = 5, df2 = 10)
+```
+
+### **Distribución Exponencial**
+
+```{r exponential}
+# Densidad en x = 1 de una distribución exponencial con tasa lambda = 2
+dexp(1, rate = 2)
+
+# Probabilidad acumulada P(X <= 1) en una exponencial con lambda = 2
+pexp(1, rate = 2)
+
+# Cuantil 75% de una exponencial con lambda = 2
+qexp(0.75, rate = 2)
+```
+
+### **Distribución Binomial**
+
+```{r binomial}
+# Probabilidad de obtener exactamente 3 éxitos en 10 ensayos con p = 0.5
+dbinom(3, size = 10, prob = 0.5)
+
+# Probabilidad acumulada P(X <= 3) en una binomial (10, 0.5)
+pbinom(3, size = 10, prob = 0.5)
+
+# Cuantil 80% de una binomial (10, 0.5)
+qbinom(0.80, size = 10, prob = 0.5)
+```
+
+### **Distribución Poisson**
+
+```{r poisson}
+# Probabilidad de obtener exactamente 4 eventos con media lambda = 2
+dpois(4, lambda = 2)
+
+# Probabilidad acumulada P(X <= 4) en una Poisson con lambda = 2
+ppois(4, lambda = 2)
+
+# Cuantil 90% de una Poisson con lambda = 2
+qpois(0.90, lambda = 2)
+```
+
+```{r distribuciones}
+# Generación de muestras de distribuciones conocidas
+
+muestra.unif1=runif(100) # genera una muestra uniforme en [0,1] de 100 datos
+muestra.unif1 # devuelve la muestra generada
+muestra.unif2=runif(200,min=2,max=5) # genera una muestra uniforme en [2,5] de 200 datos
+muestra.unif2 # devuelve la muestra generada
+muestra.norm.est=rnorm(30) # genera una muestra normal estándar de 30 datos
+muestra.norm.est # devuelve la muestra generada
+muestra.norm=rnorm(50,mean=10,sd=3) # genera una muestra normal(10,3) de 50 datos
+muestra.norm # devuelve la muestra generada
+muestra.gamma=rgamma(40,rate=2, shape=3) # genera una muestra gamma(2,3) de 40 datos
+muestra.gamma # devuelve la muestra generada
+muestra.f=rf(80,df1=5,df2=6) # genera una muestra F de Snedekor(5,6) de 80 datos
+muestra.f # devuelve la muestra generada
+muestra.exp=rexp(90,2) # genera una muestra exponencial(2) de 90 datos
+muestra.exp # devuelve la muestra generada
+muestra.chi=rchisq(70,df=4) # genera una muestra chi cuadrado con 4 grados de libertad de 70 datos
+muestra.chi # devuelve la muestra generada
+
+```
+
+
+-   *EJEMPLO DE OPERACIONES SOBRE DF*
+
+```{r operaciones_sobre_df}
+
+# Cargo la base:
+PACIENTE<-1:30
+EDAD<-c(7, 7, 8, 7, 7, 10,7 ,7, 7 ,9, 9, 11, 7, 9,  9, 11, 12, 7, 11,  6,  8,  8,  7, 10,  7,  8, 10,  7,  9, 10)
+SEXO<-c("M", "M", "M", "F", "M", "M" ,"M", "M", "M", "M", "M", "F", "M" ,"M" ,"F" ,"M", "M" ,"M" ,"M" ,"F" ,"F" ,"F", "F","F", "M" ,"M" ,"F", "F" ,"F" ,"M")  
+PESO<-c(24.4, 23.6, 47.0, 24.0, 23.9, 41.0, 32.9, 22.4, 28.7, 31.4, 28.9, 51.2, 26.2, 58.5, 23.7, 25.5, 49.7, 39.6,42.5, 21.6, 38.0, 26.6, 20.4, 23.7, 21.4, 45.7, 51.3, 28.0, 26.9, 43.9)
+TALLA<-c(1.2, 1.2, 1.4, 1.2, 1.2, 1.4, 1.3, 1.2, 1.3, 1.3, 1.3, 1.6, 1.3, 1.5, 1.3, 1.3, 1.7, 1.3, 1.5, 1.2, 1.3, 1.2, 1.2,1.3, 1.2, 1.4, 1.5, 1.3, 1.3, 1.5)
+IMC<-c(16.94444, 16.38889, 23.97959, 16.66667, 16.59722, 20.91837, 19.46746, 15.55556, 16.98225, 18.57988,17.10059, 20.00000, 15.50296, 26.00000, 14.02367, 15.08876, 17.19723, 23.43195, 18.88889, 15.00000,22.48521, 18.47222, 14.16667, 14.02367, 14.86111, 23.31633, 22.80000, 16.56805, 15.91716, 19.51111)
+PIMC<-c(7.97, 72.72, 97.08, 83.88, 45.85, 87.33, 96.57, 32.88, 80.77, 92.72, 55.54, 77.77, 70.70, 98.69,  3.25,2.07, 38.08, 98.75, 80.60, 39.97, 96.07, 71.06,  3.44,  2.02, 56.86, 98.99, 90.84, 57.50, 44.77, 84.89)
+CC<-c(54, 52, 76, 63, 56, 78, 69, 52, 60, 69, 60, 75, 50, 88, 58, 73, 75, 76, 72, 52, 76, 54, 52, 56, 56, 78, 76, 57, 57, 76)
+CatPeso<-c("N",  "N",  "OB", "N",  "N",  "SO", "OB", "N",  "N",  "SO", "N",  "N",  "N",  "OB", "D",  "D",  "N",  "OB","N" , "N",  "OB", "N",  "D",  "D",  "N",  "OB", "SO", "N",  "N",  "N" )
+IMCin<-data.frame(PACIENTE,EDAD,SEXO,PESO,TALLA,IMC,PIMC,CC,CatPeso)
+#View(IMCin)
+
+head(IMCin) # muestra las seis primeras filas de datos y los nombres de las columnas
+tail(IMCin)# muestra las seis últimas filas de datos y los nombres de las columnas
+
+dim(IMCin)#30 9
+
+rbind(head(IMCin),tail(IMCin))#une filas: las seis primeras filas con las seis últimas
+cbind(IMCin$SEXO[1:5],IMCin$PESO[1:5]) #cuidado!
+data.frame(IMCin$SEXO[1:5],IMCin$PESO[1:5]) #une columnas con sus 5 primeros elementos
+
+table(IMCin$SEXO) # devuelve las frecuencias absolutas de las categorías de la variable
+
+dist.conj=table(IMCin$CatPeso, IMCin$SEXO) # devuelve la distribución conjunta de las variables categoría de peso y sexo
+
+Z= IMCin$TALLA*100 # guarda los datos de la talla en centímetros
+mean(Z) # calcula la media
+median(Z) # calcula la mediana 
+quantile(Z, 0.75) # calcula el cualtil 75
+quantile(Z, probs = seq(0, 1, 0.25)) # calcula los cuantiles 0, 25, 50, 75 y 100
+
+is.na(Z) # indica los valores que faltan
+W<-Z 
+W[1]<-NA # asigna un valor perdido en la primera componente del vector W
+is.na(W)
+mean(W) # devuelve NA
+mean(W,na.rm=T) # no considera los valores no disponibles
+mean(na.omit(W)) # equivalente al anterior
+median(W,na.rm=T) # otra funcion que requiere excluir los valores no disponibles
+sd(W,na.rm=T) # otra funcion que requiere excluir los valores no disponibles
+
+
+```
+
+<br>
+
+## Ejercicios
+
+-   **Ejercicio 1** Calcular la media y mediana del vector x y el número
+    de valores que están por debajo de la media y de la mediana, siendo
+    x: x\<-c(1,5,7,9,3,5,6,2,4,7,5,6,9,8,6,2,6,1,4).
+
+-   **Ejercicio 2** Escribir la función que calcula el módulo de un
+    número real.
+
+-   **Ejercicio 3** Usar for para hallar el resultado de dividir de
+    manera consecutiva el número 1111 por los siguientes divisores (en
+    este orden): 2, 3, 4, 5, 6.
+
+-   **Ejercicio 4** Escribir una función que responda el signo del
+    producto de dos factores dado, es decir "Positivo", o "Negativo", y
+    en el caso que el producto sea 0 devuelva "Nulo".
+
+-   **Ejercicio 5** Simular el lanzamiento de un dado.
+
+-   **Ejercicio 6** Simular el lanzamiento de cuatro dados o de un mismo
+    dado cuatro veces.
+
+-   **Ejercicio 7** Supongamos una urna con 3 bolas blancas y 7 negras,
+    simular la extracción de una bola (asignar, por ejemplo, el 1 a bola
+    blanca y 0 a negra).
+
+-   **Ejercicio 8** Simular 8 extracciones con reemplazamiento de la
+    urna del ejercicio 7.
+
+-   **Ejercicio 9** Calcular las frecuencias porcentuales de la variable
+    sexo.
+
+-   **Ejercicio 10** Calcular la distribución porcentual de la variable
+    categoría peso por sexo.
+
+<br>
+
+------------------------------------------------------------------------
+
+<br>
+
+## Resueltos
+
+<br>
+
+-   **Ejercicio 1**
+
+x=c(1,5,7,9,3,5,6,2,4,7,5,6,9,8,6,2,6,1,4)
+
+m=mean(x) #calcula la media de los valores del vector
+
+M=median(x) #calcula la mediana de los valores del vector
+
+sum(x\<m) #calcula cuántos valores quedan por debajo de la media m
+
+sum(x\<M) #calcula cuántos valores quedan por debajo de la mediana M
+
+-   **Ejercicio 2**
+
+OPCION 1
+
+modulo\<-function(x){
+
+if(x\>=0){
+
+```         
+return(x)
+```
+
+}
+
+else{
+
+```         
+return(-x)
+```
+
+}
+
+}
+
+OPCION 2
+
+modu = function(x) {
+
+y = abs(x)
+
+return(y) }
+
+-   **Ejercicio 3**
+
+cocientes=rep(0,5) \# inicializo el vector de cocientes en cero
+
+y = 1111
+
+for (i in 2:6){
+
+y = y/i
+
+cocientes[i-1]=y
+
+}
+
+print(cocientes)
+
+-   **Ejercicio 4**
+
+Definimos la función signo
+
+signo = function(x,y) {
+
+z = x\*y
+
+res = ifelse(z==0,"Nulo",ifelse(z\>0,"positivo","negativo"))
+
+return(res) }
+
+signo(0,-2)
+
+-   **Ejercicio 5**
+
+sample(c(1,2,3,4,5,6), size=1)
+
+-   **Ejercicio 6**
+
+sample(c(1,2,3,4,5,6), size=4, replace=TRUE)
+
+-   **Ejercicio 7**
+
+sample(c(0,1), size=1, prob=c(0.3,0.7))
+
+-   **Ejercicio 8**
+
+sample(c(0,1), size=8, replace=TRUE, prob=c(0.3,0.7))
+
+-   **Ejercicio 9**
+
+*Cargo la base:*
+
+PACIENTE\<-1:30
+
+<br>
+
+EDAD \<- c(7, 7, 8, 7, 7, 10,7 ,7, 7 ,9, 9, 11, 7, 9, 9, 11, 12, 7, 11,
+6, 8, 8, 7, 10, 7, 8, 10, 7, 9, 10)
+
+<br>
+
+SEXO \<- c("M", "M", "M", "F", "M", "M" ,"M", "M", "M", "M", "M", "F",
+"M" ,"M" ,"F" ,"M", "M" ,"M" ,"M" ,"F" ,"F" ,"F", "F","F", "M" ,"M"
+,"F", "F" ,"F" ,"M")
+
+<br>
+
+PESO \<- c(24.4, 23.6, 47.0, 24.0, 23.9, 41.0, 32.9, 22.4, 28.7, 31.4,
+28.9, 51.2, 26.2, 58.5, 23.7, 25.5, 49.7, 39.6,42.5, 21.6, 38.0, 26.6,
+20.4, 23.7, 21.4, 45.7, 51.3, 28.0, 26.9, 43.9)
+
+<br>
+
+TALLA \<- c(1.2, 1.2, 1.4, 1.2, 1.2, 1.4, 1.3, 1.2, 1.3, 1.3, 1.3, 1.6,
+1.3, 1.5, 1.3, 1.3, 1.7, 1.3, 1.5, 1.2, 1.3, 1.2, 1.2,1.3, 1.2, 1.4,
+1.5, 1.3, 1.3, 1.5)
+
+<br>
+
+IMC \<- c(16.94444, 16.38889, 23.97959, 16.66667, 16.59722, 20.91837,
+19.46746, 15.55556, 16.98225, 18.57988,17.10059, 20.00000, 15.50296,
+26.00000, 14.02367, 15.08876, 17.19723, 23.43195, 18.88889,
+15.00000,22.48521, 18.47222, 14.16667, 14.02367, 14.86111, 23.31633,
+22.80000, 16.56805, 15.91716, 19.51111)
+
+<br>
+
+PIMC \<- c(7.97, 72.72, 97.08, 83.88, 45.85, 87.33, 96.57, 32.88, 80.77,
+92.72, 55.54, 77.77, 70.70, 98.69, 3.25,2.07, 38.08, 98.75, 80.60,
+39.97, 96.07, 71.06, 3.44, 2.02, 56.86, 98.99, 90.84, 57.50, 44.77,
+84.89)
+
+<br>
+
+CC \<- c(54, 52, 76, 63, 56, 78, 69, 52, 60, 69, 60, 75, 50, 88, 58, 73,
+75, 76, 72, 52, 76, 54, 52, 56, 56, 78, 76, 57, 57, 76)
+
+<br>
+
+CatPeso \<- c("N", "N", "OB", "N", "N", "SO", "OB", "N", "N", "SO", "N",
+"N", "N", "OB", "D", "D", "N", "OB","N" , "N", "OB", "N", "D", "D", "N",
+"OB", "SO", "N", "N", "N" )
+
+<br>
+
+IMCin \<- data.frame(PACIENTE,EDAD,SEXO,PESO,TALLA,IMC,PIMC,CC,CatPeso)
+
+<br>
+
+*combina las dos frecuencias en una salida*
+
+sal.sexo=rbind(table(IMCin$SEXO),100*table(IMCin$SEXO)/length(IMCin\$SEXO))
+
+<br>
+
+*asigna nombre a las filas de la salida*
+
+rownames(sal.sexo)=c("frec.abs","frec.porc")
+
+<br>
+
+*asigna nombre a las columnas de la salida*
+
+colnames(sal.sexo)=c("Femenino", "Masculino")
+
+<br>
+
+*muestra la salida*
+
+round(sal.sexo,2)
+
+<br>
+
+-   **Ejercicio 10**
+
+<br>
+
+*devuelve la distribución conjunta de las variables categoría de peso y
+sexo*
+
+dist_conj \<- table(IMCin$CatPeso, IMCin$SEXO)
+
+<br>
+
+*calculo los totales por sexo*
+
+total \<- apply(dist_conj,2,sum)
+
+<br>
+
+*calcula la distribución porcentual por sexo*
+
+dist_porc \<-
+round(100\*cbind(dist_conj[,1]/total[1],dist_conj[,2]/total[2]),2)
+
+<br>
+
+*asigna nombre a las columnas de la distribución porcentual*
+
+colnames(dist_porc) \<-c ("F(%)","M(%)")
+
+<br>
+
+*combina ambas distribuciones*
+
+sal_conj \<- cbind(dist_conj,dist_porc)
+
+<br>
+
+*calcula el total de cada columna*
+
+Totales \<- apply(sal_conj,2,sum)
+
+<br>
+
+*agrega una fila con los totales*
+
+sal_fin \<- rbind(sal_conj,Totales)
+
+<br>
+
+*muestra la salida*
+
+sal_fin
+
+<br>
+
+<br>
+
+
 
 En el análisis previo de los datos es fundamental identificar y tratar dos problemas comunes:  
 1. **Valores Perdidos:** La existencia de datos nulos o ausentes que pueden afectar la calidad de los modelos.  
@@ -680,12 +1134,6 @@ datos <- datos %>%
 - **Desventajas:**  
   - Modifica la distribución de la variable.  
   - Puede ocultar la existencia de valores extremos reales.
-
-
-A continuación se presenta un ejemplo de notebook en R estructurado en tres secciones:  
-1. **Introducción del Dataset:** Se prepara el dataset real (airquality) incluyendo la introducción de valores extremos (outliers) y valores perdidos (NA).  
-2. **Ejercicios:** Se listan los ejercicios que deberán realizar los estudiantes, con indicaciones y código base.  
-3. **Resoluciones Paso a Paso:** Se ofrecen las soluciones completas de cada ejercicio, explicadas paso a paso.
 
 
 
