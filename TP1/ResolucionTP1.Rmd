@@ -1,0 +1,484 @@
+---
+title: "Resolucion TP 1"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+## 1. Instalación de librerías y carga de datos
+
+En este primer bloque se instalan y cargan las librerías necesarias. A continuación se lee el archivo CSV que contiene el dataset.
+
+```{r}
+#install.packages("readr")
+library(readr)
+library(tidyverse)
+library(ggplot2)
+```
+
+En el siguiente bloque se define la ruta del archivo, se carga el dataset y se visualizan las primeras filas:
+
+```{r}
+file_path <- "dirty_cafe_sales.csv"
+cafe_sales_df <- read_csv(file_path)
+head(cafe_sales_df)
+```
+
+## 2. Análisis Exploratorio Inicial de algunas columnas
+
+Se seleccionan las columnas _Item_, _Quantity_, _Payment Method_ y _Location_. Se crea una función para generar un gráfico de barras con la frecuencia de cada valor y se calculan, para cada columna, la cantidad de valores nulos o no informativos (valores "ERROR" o "UNKNOWN").
+
+```{r}
+cols <- c("Item", "Quantity", "Payment Method", "Location")
+plot_column_summary <- function(df, col_name) {
+  df <- df %>% mutate(temp = as.character(.data[[col_name]]))
+  freq_table <- df %>%
+    mutate(temp = if_else(is.na(temp), "NA", temp)) %>%
+    group_by(temp) %>%
+    summarize(count = n(), .groups = "drop") %>%
+    arrange(desc(count))
+  p_bar <- ggplot(freq_table, aes(x = reorder(temp, -count), y = count)) +
+    geom_bar(stat = "identity", fill = "skyblue") +
+    labs(title = paste("Frecuencia de", col_name),
+         x = col_name,
+         y = "Frecuencia") +
+    theme_minimal()
+  print(p_bar)
+  special_counts <- df %>%
+    summarize(NA_count = sum(is.na(.data[[col_name]])),
+              ERROR_count = sum(.data[[col_name]] == "ERROR", na.rm = TRUE),
+              UNKNOWN_count = sum(.data[[col_name]] == "UNKNOWN", na.rm = TRUE))
+  print("Resumen de casos especiales")
+  print(col_name)
+  print(special_counts)
+  cat("\n-------------------------------------------------------\n")
+}
+for (col in cols) {
+  plot_column_summary(cafe_sales_df, col)
+}
+```
+
+### Preguntas Específicas
+
+**1. ¿Cuál es el _Item_ más frecuente?**  
+Se responde directamente: **Juice**
+
+**2. ¿Cuál es la _Quantity_ menos frecuente?**  
+Se responde: **1**
+
+**3. ¿Cuántas personas pagaron con _cash_?**
+
+Se calcula el total de registros con "Cash" en la columna _Payment Method_:
+
+```{r}
+sum(cafe_sales_df$`Payment Method` == "Cash", na.rm = TRUE)
+```
+
+*Respuesta:* 2258
+
+**4. ¿Cuántos registros en _Location_ presentan "UNKNOWN", _NA_ o "ERROR"? ¿Qué proporción representan sobre el total de filas?**
+
+Se calcula la cantidad y la proporción:
+
+```{r}
+non_informative_count <- sum(cafe_sales_df$Location %in% c("UNKNOWN", "ERROR"), na.rm = TRUE)
+nas_location <- sum(is.na(cafe_sales_df$Location))
+print(non_informative_count + nas_location)
+print((non_informative_count + nas_location) / length(cafe_sales_df$Location))
+```
+
+*Respuesta:* 3961 registros y el 39.61% del total.
+
+**5. Estadísticas de la columna _Price Per Unit_**
+
+Se eliminan los valores no numéricos, y se calcula el promedio, mediana y desviación estándar:
+
+```{r}
+precioxunidad <- as.numeric(cafe_sales_df$`Price Per Unit`)
+precioxunidadSinNA <- na.omit(precioxunidad)
+promedio <- mean(precioxunidadSinNA, na.rm = TRUE)
+mediana <- median(precioxunidadSinNA, na.rm = TRUE)
+desvio <- sd(precioxunidadSinNA, na.rm = TRUE)
+cat("Promedio:", round(promedio, 2), "\n")
+cat("Mediana:", round(mediana, 2), "\n")
+cat("Desvío Estándar:", round(desvio, 2), "\n")
+```
+
+*Salida:*  
+Promedio: 2.95  
+Mediana: 3  
+Desvío Estándar: 1.28
+
+## 3. Análisis de Outliers y Patrones Temporales
+
+Se examinan posibles outliers en columnas numéricas y se analiza la distribución de las transacciones a lo largo del tiempo.
+
+### Revisión de valores en _Price Per Unit_ y _Total Spent_
+
+```{r}
+table(cafe_sales_df$`Price Per Unit`)
+table(cafe_sales_df$`Total Spent`)
+```
+
+Se obtiene también el promedio de _Total Spent_ para referencia:
+
+```{r}
+mean(as.numeric(cafe_sales_df$`Total Spent`), na.rm = T)
+```
+
+### Análisis de la columna _Transaction Date_
+
+Se guarda el dataset original para futuras comparaciones y se visualiza el contenido:
+
+```{r}
+cafe_sales_df_original <- cafe_sales_df
+cafe_sales_df_original
+```
+
+Se convierten las fechas y se grafica la frecuencia de transacciones por fecha:
+
+```{r}
+cafe_sales_df <- cafe_sales_df %>%
+  mutate(`Transaction Date` = as.Date(`Transaction Date`, format = "%Y-%m-%d")) %>%
+  filter(!is.na(`Transaction Date`))
+frecuencia_fechas <- cafe_sales_df %>%
+  group_by(`Transaction Date`) %>%
+  summarise(Frecuencia = n())
+ggplot(frecuencia_fechas, aes(x = `Transaction Date`, y = Frecuencia)) +
+  geom_line(color = "blue", size = 1) +
+  geom_point(color = "red", size = 2) +
+  labs(title = "Distribución de Frecuencia de Transacciones por Fecha",
+       x = "Fecha de Transacción",
+       y = "Frecuencia") +
+  theme_minimal() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Se muestra el dataset filtrado:
+
+```{r}
+cafe_sales_df
+```
+
+Se concluye que no existen outliers relevantes.
+
+### Análisis de días y meses
+
+Se utilizan funciones para generar nuevas columnas basadas en la fecha, como el día de la semana y el mes de venta. Se configura el orden de días y meses y se generan gráficos de barras.
+
+```{r}
+cafe_sales_df <- cafe_sales_df %>% 
+  mutate(`Transaction Date` = as.Date(`Transaction Date`, format = "%Y-%m-%d")) %>% 
+  filter(!is.na(`Transaction Date`))
+dias <- c("Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado")
+cafe_sales_df <- cafe_sales_df %>% 
+  mutate(
+    dia_del_año = as.numeric(format(`Transaction Date`, "%j")),
+    diaSemana = dias[((dia_del_año - 1) %% 7) + 1]
+  )
+orden_meses <- c("enero", "febrero", "marzo", "abril", "mayo", "junio", 
+                 "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre")
+Sys.setlocale("LC_TIME", "es_ES.UTF-8")
+cafe_sales_df <- cafe_sales_df %>% 
+  mutate(
+    mesDeVenta = tolower(format(`Transaction Date`, "%B")),
+    mesDeVenta = factor(mesDeVenta, levels = orden_meses, ordered = TRUE)
+  )
+cafe_sales_df <- cafe_sales_df %>% 
+  mutate(
+    mesDeVenta = tolower(format(`Transaction Date`, "%B")),
+    mesDeVenta = factor(mesDeVenta, levels = orden_meses, ordered = TRUE)
+  )
+orden_dias <- dias
+cafe_sales_df <- cafe_sales_df %>% 
+  mutate(
+    diaSemana = factor(diaSemana, levels = orden_dias, ordered = TRUE)
+  )
+grafico_dias <- ggplot(cafe_sales_df, aes(x = diaSemana)) +
+  geom_bar(fill = "skyblue") +
+  labs(title = "Transacciones por Día de la Semana (1 de enero = Domingo)",
+       x = "Día de la Semana",
+       y = "Cantidad de Transacciones") +
+  theme_minimal()
+print(grafico_dias)
+grafico_meses <- ggplot(cafe_sales_df, aes(x = mesDeVenta)) +
+  geom_bar(fill = "orange") +
+  labs(title = "Transacciones por Mes de Venta",
+       x = "Mes de Venta",
+       y = "Cantidad de Transacciones") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+print(grafico_meses)
+```
+
+#### Preguntas sobre patrones temporales
+
+Conociendo que el 1 de enero de 2023 fue domingo:
+
+- **¿Cuál es el día de la semana con más transacciones y cuál con menos?**
+
+```{r}
+ventas_por_dia <- cafe_sales_df %>%
+  group_by(diaSemana) %>%
+  summarise(cantidad = n())
+dia_max <- ventas_por_dia %>% filter(cantidad == max(cantidad))
+dia_min <- ventas_por_dia %>% filter(cantidad == min(cantidad))
+print("Día de la semana con más ventas:")
+print(dia_max)
+print("Día de la semana con menos filas:")
+print(dia_min)
+```
+
+*Respuesta (según los resultados):*  
+- Día con menos transacciones: Martes (1311 registros)  
+- Día con más transacciones: Viernes (1388 registros)
+
+- **¿Cuál es el mes con más y con menos transacciones?**
+
+```{r}
+ventas_por_mes <- cafe_sales_df %>%
+  group_by(mesDeVenta) %>%
+  summarise(cantidad = n())
+mes_max <- ventas_por_mes %>% filter(cantidad == max(cantidad))
+mes_min <- ventas_por_mes %>% filter(cantidad == min(cantidad))
+print("Mes con más transacciones:")
+print(mes_max)
+print("Mes con menos transacciones:")
+print(mes_min)
+```
+
+*Respuesta (según los resultados):*  
+- Mes con menos transacciones: febrero (727 registros)  
+- Mes con más transacciones: octubre (838 registros)
+
+## 4. Completar y Corregir Datos
+
+Se realizan comprobaciones de consistencia en la columna _Price Per Unit_ y se crea un diccionario de precios para cada _Item_. Luego se corrigen datos faltantes en _Quantity_, _Price Per Unit_ y _Total Spent_ según la relación  
+\[ \texttt{Quantity} \times \texttt{Price Per Unit} = \texttt{Total Spent} \]
+
+### Verificación de consistencia y creación del diccionario
+
+```{r}
+cafe_sales_df <- cafe_sales_df_original
+cafe_sales_df$`Price Per Unit` <- as.numeric(cafe_sales_df$`Price Per Unit`)
+df_filtrado <- cafe_sales_df %>% 
+  filter(!Item %in% c("ERROR", "UNKNOWN", NA))
+consistencia <- df_filtrado %>% 
+  group_by(Item) %>% 
+  summarise(n_precios = n_distinct(`Price Per Unit`, na.rm = TRUE))
+print(consistencia)
+todos_consistentes <- all(consistencia$n_precios == 1)
+if (todos_consistentes) {
+  print("Todos los items tienen un precio unitario consistente.")
+  dict_precios <- cafe_sales_df %>%
+    group_by(Item) %>%
+    summarise(precio = first(na.omit(`Price Per Unit`))) %>% 
+    deframe()
+  print(dict_precios)
+} else {
+  print("No todos los items tienen un precio unitario consistente.")
+}
+```
+
+Se revisa el precio unitario para el _Item_ "Coffee":
+
+```{r}
+table(cafe_sales_df[cafe_sales_df$Item == "Coffee", ]$`Price Per Unit`)
+```
+
+### Actualización de _Price Per Unit_ basándose en un menú predefinido
+
+El menú es el siguiente: Cake: 3, Juice: 3, Coffee: 2, Cookie: 1, Salad: 5, Sandwich: 4, Smoothie: 4, Tea: 2.
+
+```{r}
+library(dplyr)
+menu <- c("Cake" = 3, "Juice" = 3, "Coffee" = 2, "Cookie" = 1, "Salad" = 5, "Sandwich" = 4, "Smoothie" = 4, "Tea" = 2)
+cafe_sales_df$`Price Per Unit` <- as.numeric(cafe_sales_df$`Price Per Unit`)
+cafe_sales_df <- cafe_sales_df %>%
+  mutate(`Price Per Unit` = if_else(
+    is.na(`Price Per Unit`) & !is.na(Item) & !(Item %in% c("ERROR", "UNKNOWN")),
+    as.numeric(menu[Item]),
+    `Price Per Unit`
+  ))
+print(cafe_sales_df)
+```
+
+### Completado de valores faltantes en _Quantity_, _Price Per Unit_ y _Total Spent_
+
+Se convierten las columnas a numérico y se rellenan los valores faltantes según la relación indicada:
+
+```{r}
+cafe_sales_df <- cafe_sales_df %>%
+  mutate(
+    Quantity = as.numeric(Quantity),
+    `Price Per Unit` = as.numeric(`Price Per Unit`),
+    `Total Spent` = as.numeric(`Total Spent`)
+  )
+cafe_sales_df <- cafe_sales_df %>%
+  mutate(
+    Quantity = if_else(
+      is.na(Quantity) & !is.na(`Price Per Unit`) & !is.na(`Total Spent`),
+      `Total Spent` / `Price Per Unit`,
+      Quantity
+    ),
+    `Price Per Unit` = if_else(
+      is.na(`Price Per Unit`) & !is.na(Quantity) & !is.na(`Total Spent`),
+      `Total Spent` / Quantity,
+      `Price Per Unit`
+    ),
+    `Total Spent` = if_else(
+      is.na(`Total Spent`) & !is.na(Quantity) & !is.na(`Price Per Unit`),
+      Quantity * `Price Per Unit`,
+      `Total Spent`
+    )
+  )
+print(cafe_sales_df)
+```
+
+### Corrección de la columna _Item_ basándose en _Price Per Unit_
+
+Si el valor de _Price Per Unit_ es 3 se asume "Cake" y si es 4 se asume "Sandwich". Se utiliza un diccionario inverso para realizar la asignación:
+
+```{r}
+price_to_item <- c("1" = "Cookie", "2" = "Coffee", "3" = "Cake", "4" = "Sandwich", "5" = "Salad")
+cafe_sales_df <- cafe_sales_df %>%
+  mutate(
+    Item = if_else(
+      (is.na(Item) | Item %in% c("ERROR", "UNKNOWN")) & !is.na(`Price Per Unit`),
+      price_to_item[as.character(`Price Per Unit`)],
+      Item
+    )
+  )
+print(cafe_sales_df)
+```
+
+### Verificación de valores no informativos
+
+Se cuenta la cantidad de _NA_, "ERROR" y "UNKNOWN" en cada columna para confirmar que la limpieza es correcta:
+
+```{r}
+na_counts <- sapply(cafe_sales_df, function(x) sum(is.na(x)))
+error_counts <- sapply(cafe_sales_df, function(x) sum(as.character(x) == "ERROR", na.rm = TRUE))
+unknown_counts <- sapply(cafe_sales_df, function(x) sum(as.character(x) == "UNKNOWN", na.rm = TRUE))
+result_matrix <- rbind("NA" = na_counts, "ERROR" = error_counts, "UNKNOWN" = unknown_counts)
+print(result_matrix)
+```
+
+Se muestra el dataset actualizado:
+
+```{r}
+cafe_sales_df
+```
+
+### Relleno de valores faltantes mediante la moda
+
+Se definen funciones para calcular la moda (excluyendo _NA_, "ERROR" y "UNKNOWN") y se reemplazan estos valores en las columnas _Item_, _Quantity_, _Price Per Unit_, _Total Spent_, _Payment Method_, _Location_ y _Transaction Date_.
+
+```{r}
+library(dplyr)
+cols_a_rellenar <- c("Item", "Quantity", "Price Per Unit", "Total Spent",
+                       "Payment Method", "Location", "Transaction Date")
+calcular_moda <- function(x) {
+  x_char <- as.character(x)
+  validos <- x_char[!is.na(x_char) & !(x_char %in% c("ERROR", "UNKNOWN"))]
+  if (length(validos) == 0) return(NA)
+  tab <- table(validos)
+  moda <- names(tab)[which.max(tab)]
+  return(moda)
+}
+reemplazar_con_moda <- function(x, moda) {
+  if (is.na(moda)) return(x)
+  if (is.numeric(x)) {
+    moda_num <- as.numeric(moda)
+    x[is.na(x) | x %in% c("ERROR", "UNKNOWN")] <- moda_num
+  } else {
+    x <- as.character(x)
+    x[is.na(x) | x %in% c("ERROR", "UNKNOWN")] <- moda
+  }
+  return(x)
+}
+modas <- sapply(cafe_sales_df[cols_a_rellenar], calcular_moda)
+for (col in cols_a_rellenar) {
+  moda <- modas[[col]]
+  cafe_sales_df[[col]] <- reemplazar_con_moda(cafe_sales_df[[col]], moda)
+}
+print(cafe_sales_df)
+```
+
+Se vuelve a verificar la cantidad de valores no informativos:
+
+```{r}
+na_counts <- sapply(cafe_sales_df, function(x) sum(is.na(x)))
+error_counts <- sapply(cafe_sales_df, function(x) sum(as.character(x) == "ERROR", na.rm = TRUE))
+unknown_counts <- sapply(cafe_sales_df, function(x) sum(as.character(x) == "UNKNOWN", na.rm = TRUE))
+result_matrix <- rbind("NA" = na_counts, "ERROR" = error_counts, "UNKNOWN" = unknown_counts)
+print(result_matrix)
+```
+
+## 5. Análisis con Bootstrapping y Visualización
+
+Utilizando el dataset corregido, se realizan resampleos mediante bootstrapping, se divide el dataset en tres bloques y se generan visualizaciones adicionales.
+
+### a) Bootstrapping de la media de _Total Spent_
+
+Se establece la semilla, se realizan 1000 resampleos y se grafica la distribución de la media:
+
+```{r}
+set.seed(123)
+n_bootstrap <- 1000
+bootstrap_means <- replicate(n_bootstrap, {
+  muestra <- sample(cafe_sales_df$`Total Spent`, size = nrow(cafe_sales_df), replace = TRUE)
+  mean(muestra)
+})
+bootstrap_df <- data.frame(MeanTotalSpent = bootstrap_means)
+library(ggplot2)
+p1 <- ggplot(bootstrap_df, aes(x = MeanTotalSpent)) +
+  geom_histogram(binwidth = 0.05, fill = "blue", color = "black", alpha = 0.7) +
+  labs(title = "Distribución Bootstrapping de la Media de Total Spent",
+       x = "Media de Total Spent", y = "Frecuencia") +
+  theme_minimal()
+print(p1)
+```
+
+### b) División del dataset en tres bloques
+
+Se barajan las filas y se dividen en tres bloques de 8000, 1000 y 1000 registros (si el dataset tiene al menos 10,000 filas). Se calculan estadísticas descriptivas de _Total Spent_ para cada bloque.
+
+```{r}
+cafe_sales_df_shuffled <- cafe_sales_df[sample(nrow(cafe_sales_df)), ]
+n_total <- nrow(cafe_sales_df_shuffled)
+if(n_total >= 10000) {
+  block1 <- cafe_sales_df_shuffled[1:8000, ]
+  block2 <- cafe_sales_df_shuffled[8001:9000, ]
+  block3 <- cafe_sales_df_shuffled[9001:10000, ]
+  stats <- data.frame(
+    Bloque = c("Block1", "Block2", "Block3"),
+    Media = c(mean(block1$`Total Spent`),
+              mean(block2$`Total Spent`),
+              mean(block3$`Total Spent`)),
+    Mediana = c(median(block1$`Total Spent`),
+                median(block2$`Total Spent`),
+                median(block3$`Total Spent`)),
+    SD = c(sd(block1$`Total Spent`),
+           sd(block2$`Total Spent`),
+           sd(block3$`Total Spent`))
+  )
+  print(stats)
+} else {
+  message("El dataset no tiene al menos 10000 filas, no es posible realizar la división en bloques.")
+}
+```
+
+### c) Visualización adicional
+
+Como ejemplo se genera un boxplot de _Total Spent_ según el método de pago:
+
+```{r}
+p2 <- ggplot(cafe_sales_df, aes(x = `Payment Method`, y = `Total Spent`)) +
+  geom_boxplot(fill = "lightblue", color = "darkblue") +
+  labs(title = "Boxplot de Total Spent por Payment Method",
+       x = "Payment Method", y = "Total Spent") +
+  theme_minimal()
+print(p2)
+```
