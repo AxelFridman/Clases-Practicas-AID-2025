@@ -609,48 +609,8 @@ datos <- datos %>%
   - Reduce la variabilidad natural de la variable.  
   - Puede introducir sesgos, especialmente si la distribución es asimétrica.
 
-### 2.2.3. Imputación mediante Regresión Lineal
 
-Se utiliza la relación entre variables para predecir los valores perdidos.
-
-```{r}
-# Filtrar casos completos para construir el modelo
-modelo <- lm(variable1 ~ variable2, data = datos, na.action = na.exclude)
-
-# Predecir valores perdidos de variable1
-prediccion <- predict(modelo, newdata = datos[is.na(datos$variable1), ])
-
-datos$variable1_impute_lm <- datos$variable1
-datos$variable1_impute_lm[is.na(datos$variable1_impute_lm)] <- prediccion
-```
-
-- **Ventajas:**  
-  - Aprovecha la correlación entre variables.  
-  - Puede mejorar la precisión de la imputación.
-- **Desventajas:**  
-  - Requiere que exista una relación lineal adecuada.  
-  - Es sensible a la presencia de outliers en la variable predictora.
-
-### 2.2.4. Imputación Múltiple con `mice`
-
-Genera varias versiones imputadas y combina los resultados, lo que permite capturar la incertidumbre en la imputación.
-
-```{r}
-# Configurar el proceso de imputación múltiple
-imputacion <- mice(datos[, c("variable1", "variable2")], m = 5, maxit = 50, method = 'pmm', seed = 500)
-# Obtener el dataset imputado (ejemplo de la primera imputación)
-datos_imputados <- complete(imputacion, 1)
-head(datos_imputados)
-```
-
-- **Ventajas:**  
-  - Considera la incertidumbre en los datos imputados.  
-  - Es robusto ante la varianza introducida por los NA.
-- **Desventajas:**  
-  - Computacionalmente más costoso.  
-  - Requiere mayor conocimiento para interpretar correctamente los resultados.
-
-### 2.2.5. Imputación Hot-Deck (Aleatoria)
+### 2.2.3. Imputación Hot-Deck (Aleatoria)
 
 Se imputan los valores perdidos seleccionando aleatoriamente un valor observado de la misma variable.
 
@@ -736,32 +696,6 @@ datos <- datos %>%
                               variable2)
   )
 
-# Imputación mediante modelo lineal
-# Se ajusta un modelo para cada variable utilizando los casos completos:
-# Para imputar variable1 faltante, se usa variable2; y para imputar variable2 faltante, se usa variable1
-datos_lm <- datos %>% filter(variable2<400, variable1<400 )
-
-modelo1 <- lm(variable1 ~ variable2, data = datos_lm)
-modelo2 <- lm(variable2 ~ variable1, data = datos_lm)
-
-# Obtener predicciones para todos los casos
-pred1 <- predict(modelo1, newdata = datos)
-pred2 <- predict(modelo2, newdata = datos)
-
-datos <- datos %>%
-  mutate(
-    variable1_linear = if_else(is.na(variable1) & !is.na(variable2),
-                               pred1,
-                               variable1),
-    variable2_linear = if_else(is.na(variable2) & !is.na(variable1),
-                               pred2,
-                               variable2)
-  )
-
-# Visualizar únicamente las filas donde originalmente había algún NA
-# (es decir, aquellas "coordenadas" donde al menos una de las variables era NA)
-datos_imputados <- datos %>% filter(is.na(variable1) | is.na(variable2))
-print(datos_imputados)
 
 
 ```
@@ -773,30 +707,25 @@ print(datos_imputados)
 # Suponiendo que 'datos_imputados' ya está creado y contiene las filas donde había NA
 # Convertir a formato largo para cada método de imputación
 
-original <- datos_imputados %>%
+original <- datos %>%
   select(id, variable1, variable2) %>%
   mutate(metodo = "Original")
 
-mediana <- datos_imputados %>%
+mediana <- datos %>%
   select(id, variable1_mediana, variable2_mediana) %>%
   rename(variable1 = variable1_mediana,
          variable2 = variable2_mediana) %>%
   mutate(metodo = "Mediana")
 
-media <- datos_imputados %>%
+media <- datos %>%
   select(id, variable1_media, variable2_media) %>%
   rename(variable1 = variable1_media,
          variable2 = variable2_media) %>%
   mutate(metodo = "Media")
 
-lineal <- datos_imputados %>%
-  select(id, variable1_linear, variable2_linear) %>%
-  rename(variable1 = variable1_linear,
-         variable2 = variable2_linear) %>%
-  mutate(metodo = "Lineal")
 
 # Unir todos los datasets en uno solo
-datos_long <- bind_rows(original, mediana, media, lineal)
+datos_long <- bind_rows(original, mediana, media)
 datos_long <- datos_long %>% filter(variable1<400, variable2<400 )
 
 
@@ -1175,27 +1104,23 @@ summary(datos)
   2. Imputar los valores NA usando una técnica hot-deck (reemplazo aleatorio).  
   3. Comparar las distribuciones (mediante resúmenes estadísticos y gráficos) entre la versión original (casos completos) y las versiones imputadas.
 
-### Ejercicio 3: Imputación por Regresión  
 
-  1. Construir un modelo de regresión lineal para imputar los NA en *Ozone* a partir de *Solar.R*.  
-  2. Comparar el resumen estadístico de la imputación por regresión con la imputación simple (por la media).  
-
-### Ejercicio 4: Detección de Outliers con IQR en *Temp*  
+### Ejercicio 3: Detección de Outliers con IQR en *Temp*  
 
   1. Detectar outliers en *Temp* utilizando el método IQR.  
   2. Generar un nuevo dataset sin los outliers.  
   3. Comparar la media y la desviación estándar antes y después de eliminar los outliers.
 
-### Ejercicio 5: Winsorización vs. Eliminación en *Temp*  
+### Ejercicio 4: Winsorización vs. Eliminación en *Temp*  
 
   1. Aplicar winsorización (al 5% y 95%) a la variable *Temp*.  
   2. Comparar los resultados de winsorización con la eliminación de outliers (obtenida en el ejercicio 4) mediante resúmenes estadísticos y gráficos de densidad.
 
-### Ejercicio 6: Test Estadísticos de Outliers en *Ozone*  
+### Ejercicio 5: Test Estadísticos de Outliers en *Ozone*  
   1. Aplicar el test de Grubbs y el test de Dixon en *Ozone* para detectar outliers.  
   2. Discutir en qué situaciones es recomendable usar uno u otro test.
 
-### Ejercicio 7: Uso de Imputación Múltiple con el dataset *mtcars*  
+### Ejercicio 6: Uso de Imputación Múltiple con el dataset *mtcars*  
   1. Utilizar el dataset *mtcars* y modificar la variable *mpg* introduciendo NA de forma aleatoria (10% de los datos).  
   2. Aplicar imputación múltiple utilizando el paquete **mice** para imputar los valores NA.  
   3. Comparar la distribución de *mpg* antes y después de la imputación (mediante histogramas y resúmenes).
@@ -1245,28 +1170,8 @@ print(summary(datos_completos$Ozone))
 cat("SD:", sd(datos_completos$Ozone), "\n")
 ```
 
-## Ejercicio 3: Imputación por Regresión
 
-```{r}
-# Construir un modelo de regresión lineal para imputar 'Ozone' a partir de 'Solar.R'
-modelo <- lm(Ozone ~ Solar.R, data = datos, na.action = na.exclude)
-summary(modelo)
-
-# Imputación por regresión: predecir valores NA en 'Ozone'
-prediccion <- predict(modelo, newdata = datos[is.na(datos$Ozone), ])
-datos$Ozone_impute_lm <- datos$Ozone
-datos$Ozone_impute_lm[is.na(datos$Ozone_impute_lm)] <- prediccion
-
-# Comparación de resúmenes
-cat("Imputación por regresión (Ozone):\n")
-print(summary(datos$Ozone_impute_lm))
-cat("Comparación con imputación con la media:\n")
-print(summary(datos$Ozone_impute_mean))
-
-# Supuestos: se asume que existe una relación lineal entre Ozone y Solar.R, con homocedasticidad y errores normalmente distribuidos.
-```
-
-## Ejercicio 4: Detección de Outliers con IQR en *Temp*
+## Ejercicio 3: Detección de Outliers con IQR en *Temp*
 
 ```{r}
 # Cálculo de cuartiles, IQR y límites para 'Temp'
@@ -1295,7 +1200,7 @@ print(c("Media original" = media_original, "SD original" = sd_original,
         "Media sin outliers" = media_sin, "SD sin outliers" = sd_sin))
 ```
 
-## Ejercicio 5: Winsorización vs. Eliminación en *Temp*
+## Ejercicio 4: Winsorización vs. Eliminación en *Temp*
 
 ```{r}
 # Función para winsorización
@@ -1331,7 +1236,7 @@ ggplot(datos_sin_outliers, aes(x = Temp)) +
   labs(title = "Densidad de Temp - Sin Outliers")
 ```
 
-## Ejercicio 6: Test Estadísticos de Outliers en *Ozone*
+## Ejercicio 5: Test Estadísticos de Outliers en *Ozone*
 
 > **Nota:** Para estos tests es necesario el paquete **outliers**.
 
@@ -1360,7 +1265,7 @@ if (sample_size > 30) {
 # mientras que el test de Dixon es útil en muestras pequeñas o cuando se sospecha de múltiples extremos.
 ```
 
-## Ejercicio 7: Uso de Imputación Múltiple con el dataset *mtcars*
+## Ejercicio 6: Uso de Imputación Múltiple con el dataset *mtcars*
 
 ```{r}
 library(mice)
