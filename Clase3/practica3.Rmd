@@ -4,73 +4,294 @@ output: html_document
 ---
 
 
-## 1. Conceptos Básicos de un Test de Hipótesis
 
-### 1.1. ¿Qué es un Test de Hipótesis?
+# 1. Conceptos Básicos de un Test de Hipótesis
 
-Un **test de hipótesis** es un procedimiento estadístico que nos permite tomar decisiones sobre una afirmación (hipótesis) acerca de una característica de la población. Se definen dos hipótesis:
+## 1.1. Hipótesis Nula (H₀) y Alternativa (H₁)
+Un **test de hipótesis** es un procedimiento estadístico para tomar decisiones sobre una afirmación (hipótesis) acerca de una característica de la población.
 
-- **Hipótesis nula (H₀):** Afirma que no existe efecto o diferencia. Por ejemplo, “la media de la variable X es igual a µ₀”.
-- **Hipótesis alternativa (H₁):** Plantea lo contrario, es decir, que existe un efecto o diferencia. Por ejemplo, “la media de la variable X es diferente de µ₀”.
+- **Hipótesis nula (H₀):** Generalmente plantea “no existe efecto” o “no hay diferencia”.  
+- **Hipótesis alternativa (H₁):** Plantea lo contrario, es decir, que sí existe efecto o diferencia.
 
-### 1.2. Errores y Nivel de Significancia
+## 1.2. Errores de Tipo I y Tipo II
 
-- **Error Tipo I (α):** Rechazar la hipótesis nula cuando en realidad es verdadera.  
-- **Error Tipo II (β):** No rechazar la hipótesis nula cuando en realidad es falsa.  
-- **Nivel de significancia (α):** Umbral (comúnmente 0.05) que usamos para decidir si el p‑valor es suficientemente pequeño como para rechazar H₀.
+- **Error Tipo I (\(\alpha\))**  
+  Se comete cuando **rechazamos H₀** siendo ésta **verdadera**. A menudo se denomina “falso positivo”.  
+  \[
+    \alpha = P(\text{rechazar H₀} \mid H₀ \text{ es verdadera}).
+  \]
 
-### 1.3. ¿Qué es el p‑valor?
+- **Error Tipo II (\(\beta\))**  
+  Ocurre cuando **no se rechaza H₀** siendo ésta **falsa**. Se le denomina “falso negativo”.  
+  \[
+    \beta = P(\text{no rechazar H₀} \mid H₀ \text{ es falsa}).
+  \]
 
-El **p‑valor** es la probabilidad, bajo la suposición de que la hipótesis nula es cierta, de obtener un resultado igual o más extremo que el observado en la muestra.  
-- **p‑valor pequeño (por ejemplo, < 0.05):** Indica que es poco probable obtener los datos observados si H₀ fuera cierta, lo que respalda rechazar H₀.  
-- **p‑valor grande:** No se cuenta con suficiente evidencia para rechazar H₀.
+## 1.3. Nivel de Significación y Potencia
 
-*Importante:* El p‑valor no indica la probabilidad de que H₀ sea verdadera, sino la probabilidad de obtener los resultados observados asumiendo que H₀ es cierta.
+- **Nivel de significación (\(\alpha\)):**  
+  Es la probabilidad máxima que aceptamos para cometer un Error Tipo I. Usualmente se fija en 0.05 o 0.01.  
+- **Potencia de la prueba (\(1-\beta\)):**  
+  Es la probabilidad de **rechazar H₀** cuando realmente es falsa. Cuanto más alta sea la potencia, más sensible es el test para detectar efectos reales.
 
----
+\[
+    1 - \beta = P(\text{rechazar H₀} \mid H₀ \text{ es falsa}).
+\]
 
-## 2. Cálculo e Interpretación del p‑valor
 
-### 2.1. Cálculo Teórico del p‑valor
+# 2. Relación entre \(\alpha\), \(\beta\) y Tamaño de la Muestra
 
-Imaginemos que tenemos una variable que sigue una distribución normal. Si queremos evaluar si la media observada se aleja significativamente de un valor hipotético µ₀, el p‑valor se calcula como el área bajo la curva en la cola (o ambas colas, según la hipótesis) de la distribución que corresponde a los valores extremos.
+1. **Para un nivel de significación \(\alpha\) dado:**  
+   - Al **aumentar** el **tamaño muestral** (\(n\)), **disminuye** \(\beta\).  
+   - Esto implica que se **incrementa** la **potencia** (\(1 - \beta\)).  
 
-### 2.2. Visualización con ggplot2
+2. **Para un tamaño de muestra fijo:**  
+   - Al **disminuir** \(\alpha\), **aumenta** \(\beta\).  
+   - Al **aumentar** \(\alpha\), **disminuye** \(\beta\).  
 
-Utilizaremos ggplot2 para ilustrar gráficamente cómo se relaciona el p‑valor con el área de una distribución normal.
+Dicho de otra manera, si reducimos mucho \(\alpha\) para ser más conservadores (menor probabilidad de falso positivo), a la vez aumentamos la probabilidad de no detectar un efecto real (falso negativo).
+
+
+# 3. Curvas de \(\beta\) (Operación Característica) y \(1-\beta\) (Potencia)
+
+- **Curva de Operación Característica (COC):** Muestra cómo evoluciona \(\beta\) (probabilidad de no rechazar H₀ cuando es falsa) frente a cambios en parámetros como el tamaño de la muestra, el efecto o \(\alpha\).  
+- **Curva de Potencia:** Muestra \(1 - \beta\), la probabilidad de rechazar H₀ correctamente cuando es falsa, según el mismo tipo de variaciones.
+
+Ambas curvas son importantes para planificar estudios:  
+- La **Curva de Potencia** ayuda a decidir cuán grande debe ser la muestra para detectar un efecto de cierto tamaño con la probabilidad deseada.  
+- La **COC** puede usarse también como referencia para ver la probabilidad de cometer un falso negativo en distintos escenarios.
+
+
+
+
+> **Supuestos para simplificar**:  
+> - Prueba de hipótesis a dos colas para una media, con desviación estándar conocida igual a 1.  
+> - H₀: \(\mu = 0\).  
+> - H₁: \(\mu \neq 0\).  
+> - El “efecto” real (verdadera media \(\mu\)) se asume diferente de 0; por ejemplo, \(\mu = 1\).  
+> - \(\alpha\) tomará algunos valores típicos (0.01, 0.05, 0.1).  
+> - \(n\) variará en un rango (por ej., 5 a 100).  
+
+## 4. Cálculo de \(\beta\) (Error Tipo II)
+
+Para una prueba de dos colas, se rechaza H₀ si \(\lvert Z \rvert > z_{\alpha/2}\), donde \(Z \sim \mathcal{N}(\delta, 1)\).  
+- \(\delta\) es el verdadero desplazamiento de la media en unidades de error estándar, \(\delta = \frac{\text{(media real - media hipotética)} \times \sqrt{n}}{\sigma}\).  
+- \(\beta = P(\text{no rechazar H₀} \mid \text{H₀ es falsa})\).  
+- Entonces, \(\beta = P(-z_{\alpha/2} \leq Z \leq z_{\alpha/2})\).  
+
+Matemáticamente, para \(Z \sim \mathcal{N}(\delta,1)\):
+\[
+  \beta = \Phi\bigl(z_{\alpha/2} - \delta\bigr) \;-\; \Phi\bigl(-z_{\alpha/2} - \delta\bigr).
+\]
+
+Donde \(\Phi\) es la función de distribución acumulada de la Normal Estándar.
+
 
 ```{r}
-# Cargar librería necesaria
+
+
 library(ggplot2)
 
-# Crear secuencia de valores y calcular la densidad de una normal estándar
-x <- seq(-4, 4, length.out = 1000)
-densidad <- dnorm(x)
+# Definimos la función para calcular Beta en una prueba de 2 colas:
+calc_beta <- function(n, alpha, efecto = 1, sigma = 1) {
+  z_alpha_2 <- qnorm(1 - alpha / 2)  # valor crítico
+  # delta es el desplazamiento (media real - media hipotética) * sqrt(n)/sigma
+  delta <- (efecto * sqrt(n)) / sigma
+  
+  # Probabilidad de no rechazar H0
+  beta_val <- pnorm(z_alpha_2 - delta) - pnorm(-z_alpha_2 - delta)
+  return(beta_val)
+}
 
-# Datos para graficar
-df <- data.frame(x = x, densidad = densidad)
+# Distintos valores de alpha
+alpha_values <- c(0.01, 0.05, 0.10)
+# Rango de tamaños de muestra
+n_values <- seq(5, 100, by = 5)
 
-# Supongamos que nuestro valor observado es 1.5 en una prueba de dos colas.
-valor_obs <- 1.5
-p_valor <- 2 * (1 - pnorm(valor_obs))
+# Construimos un data frame con todas las combinaciones de n y alpha
+df_beta <- expand.grid(
+  n = n_values,
+  alpha = alpha_values
+)
 
-# Crear la gráfica base
-ggplot(df, aes(x = x, y = densidad)) +
-  geom_line(color = "blue", size = 1) +
-  geom_area(data = subset(df, x >= valor_obs), aes(x = x, y = densidad), fill = "red", alpha = 0.4) +
-  geom_area(data = subset(df, x <= -valor_obs), aes(x = x, y = densidad), fill = "red", alpha = 0.4) +
-  labs(title = "Distribución Normal y Región del p-valor",
-       subtitle = paste("Valor observado =", valor_obs, "| p-valor =", round(p_valor, 4)),
-       x = "Valores",
-       y = "Densidad") +
+# Calculamos Beta para cada combinación
+df_beta$Beta <- mapply(
+  calc_beta,
+  n = df_beta$n,
+  alpha = df_beta$alpha
+)
+
+# Graficamos Beta vs n, con distintas curvas para cada alpha
+ggplot(df_beta, aes(x = n, y = Beta, color = factor(alpha))) +
+  geom_line(size = 1) +
+  geom_point() +
+  labs(
+    title = "Curva de Operacion Caracteristica: Beta vs. Tamano muestral",
+    x = "Tamano de la muestra (n)",
+    y = expression(beta),
+    color = expression(alpha)
+  ) +
   theme_minimal()
 ```
 
-*En la gráfica se muestran dos áreas rojas (colas) que representan la probabilidad de obtener un valor igual o mayor que 1.5 (o igual o menor que -1.5) bajo la hipótesis nula. La suma de estas áreas es el p‑valor para una prueba de dos colas.*
+**Interpretación del gráfico de Beta (\(\beta\)):**  
+- Para una media real \(\mu = 1\) (efecto de 1 unidad), se observa que a mayor \(n\), menor \(\beta\).  
+- A su vez, para un mismo \(n\), valores más grandes de \(\alpha\) implican \(\beta\) más baja.  
 
----
 
-## 3. Ejemplos Prácticos en R
+## 4.2. Curva de Potencia (\(1 - \beta\)) vs. Tamaño de la Muestra
+
+La **potencia** es \(1 - \beta\). Representa la probabilidad de **rechazar H₀** (correctamente) cuando en realidad hay un efecto. Graficarla nos muestra qué tan “sensible” es nuestro test con distintos tamaños de muestra y distintos niveles de significancia.
+
+```{r}
+# Agregamos la columna "Potencia" = 1 - Beta
+df_beta$Potencia <- 1 - df_beta$Beta
+
+# Graficamos la Curva de Potencia vs n, para cada alpha
+ggplot(df_beta, aes(x = n, y = Potencia, color = factor(alpha))) +
+  geom_line(size = 1) +
+  geom_point() +
+  labs(
+    title = "Curva de Potencia: (1 - Beta) vs. Tamano muestral",
+    x = "Tamano de la muestra (n)",
+    y = "Potencia = 1 - Beta",
+    color = expression(alpha)
+  ) +
+  theme_minimal()
+```
+
+**Interpretación del gráfico de Potencia (\(1 - \beta\)):**  
+- A medida que aumenta \(n\), la potencia se aproxima a 1 (test más capaz de detectar diferencias reales).  
+- Para un mismo \(n\), un \(\alpha\) mayor también eleva la probabilidad de rechazar H₀, por lo que la potencia aumenta.
+
+```{r}
+
+calc_beta <- function(n, alpha, delta, sigma = 1) {
+  z_alpha_2 <- qnorm(1 - alpha / 2)
+  # delta estandarizado: (delta * sqrt(n)) / sigma
+  delta_std <- (delta * sqrt(n)) / sigma
+  # Beta = P(-z_alpha_2 <= Z - delta_std <= z_alpha_2) para Z ~ N(0,1)
+  beta_val <- pnorm(z_alpha_2 - delta_std) - pnorm(-z_alpha_2 - delta_std)
+  return(beta_val)
+}
+
+# Parametros fijos y rangos
+n_fijo <- 30
+alpha_values <- c(0.01, 0.05, 0.10)
+delta_values <- seq(-1.5, 1.5, by = 0.005)
+
+df_beta_delta <- expand.grid(delta = delta_values, alpha = alpha_values)
+
+df_beta_delta$Beta <- mapply(
+  function(a, d) calc_beta(n_fijo, a, d),
+  df_beta_delta$alpha,
+  df_beta_delta$delta
+)
+
+ggplot(df_beta_delta, aes(x = delta, y = Beta, color = factor(alpha))) +
+  geom_line(size = 1) +
+  labs(
+    title = "Beta vs Delta con n=30",
+    x = "Delta (diferencia)",
+    y = "Beta",
+    color = expression(alpha)
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+# Parametros fijos y rangos
+n_fijo <- 300
+alpha_values <- c(0.01, 0.05, 0.10)
+delta_values <- seq(-1.5, 1.5, by = 0.005)
+
+df_beta_delta <- expand.grid(delta = delta_values, alpha = alpha_values)
+
+df_beta_delta$Beta <- mapply(
+  function(a, d) calc_beta(n_fijo, a, d),
+  df_beta_delta$alpha,
+  df_beta_delta$delta
+)
+
+ggplot(df_beta_delta, aes(x = delta, y = Beta, color = factor(alpha))) +
+  geom_line(size = 1) +
+  labs(
+    title = "Beta vs Delta con n=300",
+    x = "Delta (diferencia)",
+    y = "Beta",
+    color = expression(alpha)
+  ) +
+  theme_minimal()
+```
+
+# 5. Ejemplo de Prueba de Hipótesis y Cálculo de p‑valor
+
+Aunque el foco principal es mostrar la relación entre \(\alpha\), \(\beta\) y \(n\), también recordamos el concepto de **p‑valor**:
+
+1. **p‑valor pequeño (ej. < 0.05):** Evidencia para rechazar H₀.  
+2. **p‑valor grande:** No hay evidencia suficiente para rechazar H₀.
+
+### 5.1. Simulación y Cálculo del p‑valor
+
+```{r}
+set.seed(100)
+
+# Simulamos datos donde la media real es 10.5, sd=2, n=40
+muestra <- rnorm(40, mean = 10.5, sd = 2)
+
+media_muestra <- mean(muestra)
+sd_muestra <- sd(muestra)
+n <- length(muestra)
+media_hipotetica <- 10
+
+# Estadístico z para H0: mu = 10 vs H1: mu != 10
+error_estandar <- sd_muestra / sqrt(n)
+z_stat <- (media_muestra - media_hipotetica) / error_estandar
+p_valor <- 2 * (1 - pnorm(abs(z_stat)))  # prueba a dos colas
+
+cat("Media de la muestra:", round(media_muestra, 2), "\n")
+cat("Estadistico z:", round(z_stat, 2), "\n")
+cat("p-valor:", round(p_valor, 4), "\n")
+```
+
+**Interpretación:**  
+- Si \(\text{p-valor} < \alpha\) (por ejemplo, 0.05), se rechaza H₀.  
+- Si \(\text{p-valor} \geq \alpha\), no se puede rechazar H₀.
+
+### 5.2. Visualización del p‑valor en la Distribución Normal
+
+```{r}
+# Distribución Normal Estándar
+x <- seq(-4, 4, length.out = 1000)
+densidad <- dnorm(x)
+df <- data.frame(x = x, densidad = densidad)
+
+valor_obs <- 1.5  # Ejemplo de estadístico observado
+p_valor_ej <- 2 * (1 - pnorm(abs(valor_obs)))
+
+ggplot(df, aes(x = x, y = densidad)) +
+  geom_line(size = 1) +
+  # Area en las dos colas más extremas que valor_obs
+  geom_area(data = subset(df, x >= valor_obs),
+            aes(x = x, y = densidad), alpha = 0.4) +
+  geom_area(data = subset(df, x <= -valor_obs),
+            aes(x = x, y = densidad), alpha = 0.4) +
+  labs(
+    title = "Distribucion Normal y Region del p-valor",
+    subtitle = paste("Valor observado =", valor_obs,
+                     "| p-valor =", round(p_valor_ej, 4)),
+    x = "Valores",
+    y = "Densidad"
+  ) +
+  theme_minimal()
+```
+
+> En la gráfica, las áreas sombreadas en las colas representan la probabilidad (p‑valor) de obtener un valor igual o más extremo que 1.5 (o -1.5) bajo H₀.
+
+
+
+## 3. Ejemplos 
 
 ### 3.1. Ejemplo 1: Test de Hipótesis para la Media de una Distribución Normal
 
@@ -102,7 +323,7 @@ z <- (media_muestra - media_hipotetica) / error_est
 # p-valor para una prueba de dos colas
 p_valor_manual <- 2 * (1 - pnorm(abs(z)))
 cat("Media de la muestra:", round(media_muestra, 2), "\n")
-cat("Estadístico z:", round(z, 2), "\n")
+cat("Estadistico z:", round(z, 2), "\n")
 cat("p-valor:", round(p_valor_manual, 4), "\n")
 ```
 
@@ -155,9 +376,9 @@ ggplot(df_binom, aes(x = x, y = densidad)) +
   theme_minimal()
 ```
 
----
 
-## 4. Ejercicios para los Estudiantes
+
+## 4. Ejercicios
 
 ### Ejercicio 1: Media de una Distribución Normal  
 - **Enunciado:**  
@@ -191,7 +412,6 @@ ggplot(df_binom, aes(x = x, y = densidad)) +
   4. Visualizar la distribución de las diferencias de medias simuladas y marcar la diferencia observada.  
 - **Pista:** Use funciones como `sample()`, `replicate()` y ggplot2 para la visualización.
 
----
 
 ## 5. Resoluciones de los Ejercicios
 
@@ -313,104 +533,6 @@ A continuación se presenta una clase muy detallada (para 2 horas) en la que se 
 
 
 
-## 1. Errores Tipo I y Tipo II
-
-### 1.1. Conceptos Teóricos
-
-- **Error Tipo I (α):**  
-  Ocurre cuando se rechaza la hipótesis nula (H₀) siendo ésta verdadera. Es el “falso positivo”. Por ejemplo, afirmar que existe una diferencia en medias cuando en realidad no la hay. El nivel de significancia (α) define la probabilidad máxima aceptada para cometer este error (comúnmente 0.05).
-
-- **Error Tipo II (β):**  
-  Ocurre cuando no se rechaza H₀ cuando ésta es falsa (no detectar un efecto real), es decir, se incurre en un “falso negativo”.
-
-- **Relación con la Potencia:**  
-  La potencia de un test es la probabilidad de rechazar H₀ cuando es falsa y se define como 1 − β. Una prueba con alta potencia es más sensible para detectar diferencias reales.
-
-### 1.2. Ejemplo Práctico: Simulación Básica
-
-Supongamos que tenemos una variable que sigue una distribución normal y queremos contrastar que su media sea un valor hipotético. Podemos ilustrar la posibilidad de cometer errores Tipo I y Tipo II.
-
-```{r}
-set.seed(100)
-# Simulación de una muestra de 40 datos con media = 10.5 y sd = 2
-muestra <- rnorm(40, mean = 10.5, sd = 2)
-media_muestra <- mean(muestra)
-sd_muestra <- sd(muestra)
-n <- length(muestra)
-
-# Hipótesis planteadas:
-# H₀: µ = 10   vs.   H₁: µ ≠ 10
-media_hipotetica <- 10
-
-# Error estándar y estadístico de prueba (z)
-error_est <- sd_muestra / sqrt(n)
-z <- (media_muestra - media_hipotetica) / error_est
-p_valor <- 2 * (1 - pnorm(abs(z)))
-
-cat("Media de la muestra:", round(media_muestra, 2), "\n")
-cat("Estadístico z:", round(z, 2), "\n")
-cat("p-valor:", round(p_valor, 4), "\n")
-```
-
-*Interpretación:*  
-Si establecemos α = 0.05, un p‑valor menor a este umbral nos indicaría rechazar H₀ (posible Error Tipo I si H₀ fuera cierta) y, en otros casos, podríamos incurrir en un Error Tipo II si no rechazamos H₀ cuando en realidad la media es distinta.
-
----
-
-## 2. Potencia de la Prueba
-
-### 2.1. Concepto y Relevancia
-
-- **Definición:**  
-  La potencia de un test es la probabilidad de detectar un efecto real (rechazar H₀) cuando éste existe. Es decir, es 1 − β.
-
-- **Importancia:**  
-  Una prueba con baja potencia puede fallar en detectar diferencias reales. Aumentar el tamaño de la muestra o el tamaño del efecto (diferencia entre medias, por ejemplo) suele incrementar la potencia.
-
-### 2.2. Ejemplo Práctico: Cálculo de Potencia
-
-Usaremos la función `power.t.test()` para estimar la potencia de una prueba de hipótesis para la media en una distribución normal. Supondremos que queremos detectar una diferencia de 1.5 unidades entre la media real y la hipotética.
-
-```{r}
-# Supongamos:
-# - Tamaño del efecto: diferencia de 1.5
-# - Desviación estándar: 2
-# - Tamaño muestral: 40
-# - Nivel de significancia: 0.05
-
-potencia_resultado <- power.t.test(n = 40, delta = 1.5, sd = 2, sig.level = 0.05, type = "one.sample", alternative = "two.sided")
-print(potencia_resultado)
-```
-
-*Interpretación:*  
-El valor de potencia que arroja la función indica la probabilidad de detectar la diferencia de 1.5 si realmente existe. Por ejemplo, una potencia de 0.80 indica un 80% de probabilidad de rechazar H₀ cuando la diferencia es real.
-
-### 2.3. Visualización de la Potencia
-
-Podemos visualizar cómo varía la potencia al cambiar el tamaño muestral o el tamaño del efecto. A continuación se muestra un ejemplo en el que graficamos la potencia en función del tamaño muestral.
-
-```{r}
-library(ggplot2)
-
-# Crear un vector de tamaños muestrales
-n_values <- seq(20, 100, by = 2)
-potencias <- sapply(n_values, function(n_val) {
-  resultado <- power.t.test(n = n_val, delta = 1.5, sd = 2, sig.level = 0.05, type = "one.sample", alternative = "two.sided")
-  resultado$power
-})
-df_potencia <- data.frame(n = n_values, potencia = potencias)
-
-ggplot(df_potencia, aes(x = n, y = potencia)) +
-  geom_line(color = "darkgreen", size = 1) +
-  geom_point(color = "darkgreen") +
-  labs(title = "Potencia de la prueba en función del tamaño muestral",
-       x = "Tamaño muestral",
-       y = "Potencia") +
-  theme_minimal()
-```
-
----
-
 ## 3. Test de Independencia
 
 ### 3.1. Concepto y Uso
@@ -461,9 +583,8 @@ ggplot(datos_cat, aes(x = genero, fill = preferencia)) +
 
 ```
 
----
 
-## 4. Ejercicios para los Estudiantes
+## 4. Ejercicios
 
 ### Ejercicio 1: Errores Tipo I y Tipo II  
 - **Enunciado:**  
@@ -494,7 +615,6 @@ ggplot(datos_cat, aes(x = genero, fill = preferencia)) +
   4. Además, simule una variable categórica “asistencia” (Alta, Baja) y verifique si existe asociación entre el grupo de estudio (A o B) y la asistencia mediante un test de independencia.  
   5. Visualice los resultados de ambas pruebas.
 
----
 
 ## 5. Resoluciones de los Ejercicios
 
@@ -524,7 +644,7 @@ cat("p-valor:", round(p_valor_e1,4), "\n")
 - Cometer un Error Tipo I implicaría rechazar H₀ cuando la media real fuera 10.  
 - Un Error Tipo II se cometería si no se rechaza H₀ aun cuando la media real sea 12.
 
----
+
 
 ### Resolución Ejercicio 2: Potencia de la Prueba
 
@@ -538,7 +658,7 @@ print(resultado_potencia)
 *Comentario:*  
 El resultado indicará el tamaño muestral necesario por grupo para alcanzar una potencia de al menos 85% dado el tamaño del efecto y la variabilidad propuesta.
 
----
+
 
 ### Resolución Ejercicio 3: Test de Independencia
 
@@ -573,7 +693,7 @@ ggplot(datos_e3, aes(x = tipo_estudio, fill = satisfaccion)) +
 *Comentario:*  
 Si el p‑valor del test chi-cuadrado es menor a 0.05, se rechaza la hipótesis de independencia, indicando que existe una asociación entre el tipo de estudio y el nivel de satisfacción.
 
----
+
 
 ### Resolución Ejercicio 4 (Integrador)
 
@@ -681,7 +801,7 @@ ggplot(df_boot, aes(x = prop)) +
   theme_minimal()
 ```
 
----
+
 
 ## 2. Test de Permutaciones para Variables Cualitativas (Proporciones)
 
@@ -736,7 +856,7 @@ ggplot(df_perm, aes(x = diff)) +
   theme_minimal()
 ```
 
----
+
 
 ## 3. Test de Homogeneidad
 
@@ -778,7 +898,7 @@ ggplot(iris, aes(x = Species, fill = Ancho_Sepal)) +
   theme_minimal()
 ```
 
----
+
 
 ## 4. Test Exacto de Fisher
 
@@ -806,7 +926,7 @@ test_fisher <- fisher.test(tabla_fisher)
 print(test_fisher)
 ```
 
----
+
 
 ## 5. Test de Homocedasticidad
 
@@ -834,7 +954,6 @@ ggplot(iris, aes(x = Species, y = Sepal.Length, fill = Species)) +
   theme_minimal()
 ```
 
----
 
 ## 6. Test de Normalidad
 
@@ -862,7 +981,53 @@ ggplot(iris, aes(sample = Sepal.Length)) +
   theme_minimal()
 ```
 
----
+
+### Test Anderson-Darling
+El test de Anderson-Darling es una prueba estadística que evalúa si un conjunto de datos sigue una distribución teórica, en este caso, la distribución normal. A diferencia del test de Shapiro-Wilk, este test pone mayor énfasis en las colas de la distribución, lo que lo hace especialmente sensible a desviaciones en los extremos. El método se basa en comparar la función de distribución empírica de la muestra con la función de distribución teórica esperada. El estadístico del test se calcula a partir de la suma ponderada de las diferencias entre ambas funciones. Un valor alto del estadístico indica una discrepancia significativa, sugiriendo que los datos pueden no seguir una distribución normal
+
+```{r}
+# Cargar el paquete nortest (instalar si es necesario)
+if (!require(nortest)) {
+  install.packages("nortest")
+  library(nortest)
+}
+
+# Test de Anderson-Darling para Sepal.Length
+ad_result <- ad.test(iris$Sepal.Length)
+print(ad_result)
+
+
+ggplot(iris, aes(x = Sepal.Length)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "skyblue", color = "black") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(iris$Sepal.Length), sd = sd(iris$Sepal.Length)), 
+                color = "red", size = 1) +
+  labs(title = "Histograma de Sepal.Length con curva normal",
+       x = "Sepal.Length", y = "Densidad") +
+  theme_minimal()
+
+```
+
+```{r}
+
+normal_real <- rnorm(200, mean = 15, sd = 3)
+
+ad_result2 <- ad.test(normal_real)
+print(ad_result2)
+
+df <- data.frame(normal_real)
+
+ggplot(df, aes(x = normal_real)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "lightgreen", color = "black") +
+  stat_function(fun = dnorm, 
+                args = list(mean = mean(normal_real), sd = sd(normal_real)), 
+                color = "blue", size = 1) +
+  labs(title = "Histograma con curva normal",
+       x = "Valor", y = "Densidad") +
+  theme_minimal()
+
+
+```
 
 # Sección de Ejercicios
 
@@ -875,7 +1040,7 @@ Simule una muestra de 150 observaciones de una variable categórica con niveles 
 - Realice 2000 réplicas de bootstrapping para estimar dicha proporción.  
 - Obtenga el intervalo de confianza al 95% y grafique la distribución de las proporciones obtenidas.
 
----
+
 
 ### Ejercicio 2: Test de Permutaciones para Proporciones
 **Enunciado:**  
@@ -884,7 +1049,7 @@ Simule dos grupos con 100 observaciones cada uno.
 - Realice un test de permutaciones con 3000 réplicas para evaluar si la diferencia en proporciones es significativa.  
 - Grafique la distribución de las diferencias permutadas y reporte el p‑valor.
 
----
+
 
 ### Ejercicio 3: Test de Homogeneidad
 **Enunciado:**  
@@ -893,7 +1058,7 @@ Utilice datos simulados para tres regiones donde se clasifica la preferencia de 
 - Realice el test de homogeneidad (chi-cuadrado) para evaluar si la distribución de preferencias es similar entre las regiones.  
 - Interprete el p‑valor.
 
----
+
 
 ### Ejercicio 4: Test Exacto de Fisher
 **Enunciado:**  
@@ -901,7 +1066,7 @@ Simule una tabla 2×2 con datos pequeños para las variables “Uso de medicamen
 - Realice el test exacto de Fisher.  
 - Interprete el p‑valor y concluya sobre la asociación.
 
----
+
 
 ### Ejercicio 5: Test de Homocedasticidad
 **Enunciado:**  
@@ -909,7 +1074,7 @@ Utilice el dataset *iris* o simule tres grupos de datos numéricos.
 - Realice un test de homocedasticidad (puede usar el test de Bartlett) para evaluar si las varianzas son iguales entre los grupos.  
 - Reporte el p‑valor y concluya si se cumple el supuesto de igualdad de varianzas.
 
----
+
 
 ### Ejercicio 6: Test de Normalidad
 **Enunciado:**  
@@ -918,7 +1083,7 @@ Utilice la variable *mpg* del dataset *mtcars*.
 - Genere un Q-Q plot para visualizar la normalidad.  
 - Interprete los resultados.
 
----
+
 
 ### Ejercicio Integrador
 **Enunciado:**  
@@ -929,7 +1094,7 @@ Utilizando el dataset *iris* y simulaciones, realice lo siguiente:
 4. Realice un test de homocedasticidad para comparar la varianza de *Sepal.Length* entre las especies.
 5. Presente visualizaciones: gráfico de barras para “Ancho_Sepal” por especie, Q-Q plot para *Sepal.Length* y boxplots de *Sepal.Length* por especie.
 
----
+
 
 # Sección de Resoluciones
 
@@ -962,7 +1127,7 @@ ggplot(df_boot, aes(x = prop)) +
   theme_minimal()
 ```
 
----
+
 
 ## Resolución Ejercicio 2: Test de Permutaciones para Proporciones
 
@@ -1001,7 +1166,7 @@ ggplot(df_perm, aes(x = diff)) +
   theme_minimal()
 ```
 
----
+
 
 ## Resolución Ejercicio 3: Test de Homogeneidad
 
@@ -1020,7 +1185,7 @@ test_homo <- chisq.test(tabla)
 print(test_homo)
 ```
 
----
+
 
 ## Resolución Ejercicio 4: Test Exacto de Fisher
 
@@ -1035,7 +1200,7 @@ test_fisher <- fisher.test(tabla_f)
 print(test_fisher)
 ```
 
----
+
 
 ## Resolución Ejercicio 5: Test de Homocedasticidad
 
@@ -1055,7 +1220,7 @@ ggplot(iris, aes(x = Species, y = Sepal.Length, fill = Species)) +
   theme_minimal()
 ```
 
----
+
 
 ## Resolución Ejercicio 6: Test de Normalidad
 
@@ -1073,7 +1238,7 @@ ggplot(mtcars, aes(sample = mpg)) +
   theme_minimal()
 ```
 
----
+
 
 ## Resolución Ejercicio Integrador
 
@@ -1176,7 +1341,7 @@ ggplot(iris, aes(x = Species, fill = Ancho_Sepal)) +
   theme_minimal()
 ```
 
----
+
 
 ## Ejercicio Test de independencia
 
@@ -1193,7 +1358,7 @@ Realice un test de independencia para evaluar si existe relación entre el **Col
 
 Hagan lo mismo pero en vez de tamaño de muestra fijo en 200, para cada posible tamaño de muestra entre 100 y 4000 (intervalos cada 100), y visualizenlo con el eje x el tamaño de la muestra y en el eje y el p-valor obtenido en el test.
 
----
+
 
 ### Resolución del Ejercicio
 
