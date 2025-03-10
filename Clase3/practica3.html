@@ -784,80 +784,53 @@ ggplot(df_binom, aes(x = x, y = densidad)) +
 </div>
 <div id="ejercicios" class="section level2">
 <h2>4. Ejercicios</h2>
-<div id="ejercicio-1-media-de-una-distribución-normal" class="section level3">
-<h3>Ejercicio 1: Media de una Distribución Normal</h3>
-<ul>
-<li><strong>Enunciado:</strong><br />
-Simulen una muestra de 40 datos de una distribución normal con media 15
-y desviación 3. Planteen la hipótesis:
-<ul>
-<li>H₀: La media es 14.<br />
-</li>
-<li>H₁: La media es diferente de 14.<br />
+</div>
+<div id="ejercicio-1-media-de-una-distribución-normal" class="section level2">
+<h2>### Ejercicio 1: Media de una Distribución Normal</h2>
+<p>Simulen una muestra de 40 datos de una distribución normal con media
+15 y desviación 3. Planteen la hipótesis:<br />
+- H₀: La media es 14.<br />
+- H₁: La media es diferente de 14.<br />
 Calcular el estadístico (z) y el p‑valor manualmente.<br />
-</li>
-</ul></li>
-<li><strong>Pista:</strong> Use funciones <code>rnorm()</code>,
-<code>mean()</code>, <code>sd()</code>, y <code>pnorm()</code>.</li>
-</ul>
+- <strong>Pista:</strong> Use funciones <code>rnorm()</code>,
+<code>mean()</code>, <code>sd()</code>, y <code>pnorm()</code>.</p>
 </div>
-<div id="ejercicio-2-visualización-del-pvalor" class="section level3">
-<h3>Ejercicio 2: Visualización del p‑valor</h3>
-<ul>
-<li><strong>Enunciado:</strong><br />
-Utilizando ggplot2, grafiquen la distribución normal estándar y marquen
-la región que corresponde al p‑valor para un valor observado de 2.2 en
-una prueba de dos colas.<br />
-</li>
-<li><strong>Pista:</strong> Use <code>geom_area()</code> para sombrear
-las colas de la distribución.</li>
-</ul>
+<div id="ejercicio-2-visualización-del-pvalor" class="section level2">
+<h2>### Ejercicio 2: Visualización del p‑valor</h2>
+<p>Utilizando ggplot2, grafiquen la distribución normal estándar y
+marquen la región que corresponde al p‑valor para un valor observado de
+2.2 en una prueba de dos colas.<br />
+- <strong>Pista:</strong> Use <code>geom_area()</code> para sombrear las
+colas de la distribución.</p>
 </div>
-<div id="ejercicio-3-experimento-de-lanzamiento-de-moneda" class="section level3">
-<h3>Ejercicio 3: Experimento de Lanzamiento de Moneda</h3>
-<ul>
-<li><strong>Enunciado:</strong><br />
-Simulen 200 lanzamientos de una moneda (con probabilidad 0.5) y supongan
-que obtuvieron un número inusual de caras (por ejemplo, 130).<br />
+<div id="ejercicio-3-experimento-de-lanzamiento-de-moneda" class="section level2">
+<h2>### Ejercicio 3: Experimento de Lanzamiento de Moneda</h2>
+<p>Simulen 200 lanzamientos de una moneda (con probabilidad 0.5) y
+supongan que obtuvieron un número inusual de caras (por ejemplo,
+130).<br />
 Calcular el p‑valor usando la distribución binomial y explique si se
 rechazaría la hipótesis de moneda justa (usando α = 0.05).<br />
-</li>
-<li><strong>Pista:</strong> Use <code>rbinom()</code>,
-<code>pbinom()</code> y visualice la distribución.</li>
-</ul>
+- <strong>Pista:</strong> Use <code>rbinom()</code>,
+<code>pbinom()</code> y visualice la distribución.</p>
 </div>
-<div id="ejercicio-4-comparación-de-dos-grupos-simulados" class="section level3">
-<h3>Ejercicio 4: Comparación de Dos Grupos Simulados</h3>
-<ul>
-<li><strong>Enunciado:</strong><br />
-Simulen dos grupos independientes de 50 observaciones cada uno:
-<ul>
-<li>Grupo A: datos generados con media 20 y desviación 4.<br />
-</li>
-<li>Grupo B: datos generados con media 22 y desviación 4.<br />
+<div id="ejercicio-4-comparación-de-dos-grupos-simulados" class="section level2">
+<h2>### Ejercicio 4: Comparación de Dos Grupos Simulados</h2>
+<p>Simulen dos grupos independientes de 50 observaciones cada uno:<br />
+- Grupo A: datos generados con media 20 y desviación 4.<br />
+- Grupo B: datos generados con media 22 y desviación 4.<br />
 Planteen la hipótesis de que no existe diferencia en las medias entre
 los grupos (H₀: µₐ = µ_b).<br />
 Realicen lo siguiente:<br />
-</li>
-</ul>
-<ol style="list-style-type: decimal">
-<li>Calcular la diferencia de medias observada.<br />
-</li>
-<li>Utilizar un método de re-muestreo (simulación) para generar la
+1. Calcular la diferencia de medias observada.<br />
+2. Utilizar un método de re-muestreo (simulación) para generar la
 distribución de la diferencia de medias bajo H₀ (por ejemplo, mezclando
 ambos grupos y extrayendo muestras aleatorias).<br />
-</li>
-<li>Calcular el p‑valor como la proporción de simulaciones en las que la
+3. Calcular el p‑valor como la proporción de simulaciones en las que la
 diferencia absoluta es mayor o igual a la observada.<br />
-</li>
-<li>Visualizar la distribución de las diferencias de medias simuladas y
+4. Visualizar la distribución de las diferencias de medias simuladas y
 marcar la diferencia observada.<br />
-</li>
-</ol></li>
-<li><strong>Pista:</strong> Use funciones como <code>sample()</code>,
-<code>replicate()</code> y ggplot2 para la visualización.</li>
-</ul>
-</div>
+- <strong>Pista:</strong> Use funciones como <code>sample()</code>,
+<code>replicate()</code> y ggplot2 para la visualización.</p>
 </div>
 <div id="resoluciones-de-los-ejercicios" class="section level2">
 <h2>5. Resoluciones de los Ejercicios</h2>
@@ -1046,80 +1019,55 @@ ggplot(datos_cat, aes(x = genero, fill = preferencia)) +
 </div>
 <div id="ejercicios-1" class="section level2">
 <h2>4. Ejercicios</h2>
-<div id="ejercicio-1-errores-tipo-i-y-tipo-ii" class="section level3">
-<h3>Ejercicio 1: Errores Tipo I y Tipo II</h3>
-<ul>
-<li><strong>Enunciado:</strong><br />
-Simule una muestra de 50 datos con una media de 12 y desviación 3.
-Plantee la prueba:
-<ul>
-<li>H₀: µ = 10<br />
-</li>
-<li>H₁: µ ≠ 10<br />
+</div>
+<div id="ejercicio-1-errores-tipo-i-y-tipo-ii" class="section level2">
+<h2>### Ejercicio 1: Errores Tipo I y Tipo II</h2>
+<p>Simule una muestra de 50 datos con una media de 12 y desviación 3.
+Plantee la prueba:<br />
+- H₀: µ = 10<br />
+- H₁: µ ≠ 10<br />
 Calcule el estadístico de prueba, el p‑valor y discuta en qué
 situaciones podría incurrirse en un Error Tipo I o en un Error Tipo
-II.</li>
-</ul></li>
-</ul>
+II.</p>
 </div>
-<div id="ejercicio-2-potencia-de-la-prueba" class="section level3">
-<h3>Ejercicio 2: Potencia de la Prueba</h3>
-<ul>
-<li><strong>Enunciado:</strong><br />
-Utilice la función <code>power.t.test()</code> para determinar el tamaño
-muestral necesario para alcanzar una potencia de al menos 0.85,
+<div id="ejercicio-2-potencia-de-la-prueba" class="section level2">
+<h2>### Ejercicio 2: Potencia de la Prueba</h2>
+<p>Utilice la función <code>power.t.test()</code> para determinar el
+tamaño muestral necesario para alcanzar una potencia de al menos 0.85,
 considerando un tamaño del efecto (diferencia) de 2, una desviación
-estándar de 3 y un nivel de significancia de 0.05.</li>
-</ul>
+estándar de 3 y un nivel de significancia de 0.05.</p>
 </div>
-<div id="ejercicio-3-test-de-independencia" class="section level3">
-<h3>Ejercicio 3: Test de Independencia</h3>
-<ul>
-<li><strong>Enunciado:</strong><br />
-Dado el siguiente conjunto de datos simulados que representan la
+<div id="ejercicio-3-test-de-independencia" class="section level2">
+<h2>### Ejercicio 3: Test de Independencia</h2>
+<p>Dado el siguiente conjunto de datos simulados que representan la
 relación entre el tipo de estudio (Presencial, Virtual) y la
 satisfacción (Alta, Media, Baja) de los estudiantes, realice lo
-siguiente:
-<ol style="list-style-type: decimal">
-<li>Construya la tabla de contingencia.<br />
-</li>
-<li>Realice el test de chi-cuadrado para determinar si existe una
+siguiente:<br />
+1. Construya la tabla de contingencia.<br />
+2. Realice el test de chi-cuadrado para determinar si existe una
 relación entre las dos variables.<br />
-</li>
-<li>Visualice los resultados utilizando un gráfico de mosaico.</li>
-</ol></li>
-</ul>
+3. Visualice los resultados utilizando un gráfico de mosaico.</p>
 <blockquote>
 <p><em>Pista:</em> Puede crear los datos utilizando la función
 <code>sample()</code>.</p>
 </blockquote>
 </div>
-<div id="ejercicio-4-integrador-y-más-extenso" class="section level3">
-<h3>Ejercicio 4 (Integrador y más extenso):</h3>
-<ul>
-<li><strong>Enunciado:</strong><br />
-Combine los conceptos de errores, potencia y test de independencia en el
-siguiente escenario:
-<ol style="list-style-type: decimal">
-<li>Simule dos grupos de estudiantes de 100 observaciones cada uno,
-donde se mida la nota final. Suponga que el Grupo A tiene una media de
-75 y el Grupo B de 80 (con desviación 10).<br />
-</li>
-<li>Realice una prueba (utilizando el enfoque de re-muestreo o métodos
+<div id="ejercicio-4-integrador-y-más-extenso" class="section level2">
+<h2>### Ejercicio 4 (Integrador y más extenso):</h2>
+<p>Combine los conceptos de errores, potencia y test de independencia en
+el siguiente escenario:<br />
+1. Simule dos grupos de estudiantes de 100 observaciones cada uno, donde
+se mida la nota final. Suponga que el Grupo A tiene una media de 75 y el
+Grupo B de 80 (con desviación 10).<br />
+2. Realice una prueba (utilizando el enfoque de re-muestreo o métodos
 paramétricos) para determinar si existe una diferencia en las
 medias.<br />
-</li>
-<li>Calcule la potencia de la prueba para detectar dicha
+3. Calcule la potencia de la prueba para detectar dicha
 diferencia.<br />
-</li>
-<li>Además, simule una variable categórica “asistencia” (Alta, Baja) y
+4. Además, simule una variable categórica “asistencia” (Alta, Baja) y
 verifique si existe asociación entre el grupo de estudio (A o B) y la
 asistencia mediante un test de independencia.<br />
-</li>
-<li>Visualice los resultados de ambas pruebas.</li>
-</ol></li>
-</ul>
-</div>
+5. Visualice los resultados de ambas pruebas.</p>
 </div>
 <div id="resoluciones-de-los-ejercicios-1" class="section level2">
 <h2>5. Resoluciones de los Ejercicios</h2>
@@ -1636,14 +1584,11 @@ ggplot(df, aes(x = normal_real)) +
 </div>
 <div id="sección-de-ejercicios" class="section level1">
 <h1>Sección de Ejercicios</h1>
-<p>A continuación se presentan ejercicios prácticos. Se propone al menos
-un ejercicio por tema y un ejercicio integrador.</p>
 <div id="ejercicio-1-bootstrapping-para-proporciones" class="section level3">
 <h3>Ejercicio 1: Bootstrapping para Proporciones</h3>
-<p><strong>Enunciado:</strong><br />
-Simule una muestra de 150 observaciones de una variable categórica con
-niveles “Aprobado” y “Reprobado” donde la probabilidad de “Aprobado” sea
-0.70.<br />
+<p>Simule una muestra de 150 observaciones de una variable categórica
+con niveles “Aprobado” y “Reprobado” donde la probabilidad de “Aprobado”
+sea 0.70.<br />
 - Calcule la proporción original de “Aprobado”.<br />
 - Realice 2000 réplicas de bootstrapping para estimar dicha
 proporción.<br />
@@ -1652,8 +1597,7 @@ las proporciones obtenidas.</p>
 </div>
 <div id="ejercicio-2-test-de-permutaciones-para-proporciones" class="section level3">
 <h3>Ejercicio 2: Test de Permutaciones para Proporciones</h3>
-<p><strong>Enunciado:</strong><br />
-Simule dos grupos con 100 observaciones cada uno.<br />
+<p>Simule dos grupos con 100 observaciones cada uno.<br />
 - En el Grupo 1, la proporción de “Aprobado” es 0.80; en el Grupo 2, es
 0.65.<br />
 - Realice un test de permutaciones con 3000 réplicas para evaluar si la
@@ -1663,8 +1607,7 @@ p‑valor.</p>
 </div>
 <div id="ejercicio-3-test-de-homogeneidad" class="section level3">
 <h3>Ejercicio 3: Test de Homogeneidad</h3>
-<p><strong>Enunciado:</strong><br />
-Utilice datos simulados para tres regiones donde se clasifica la
+<p>Utilice datos simulados para tres regiones donde se clasifica la
 preferencia de un producto en tres niveles: Alta, Media y Baja.<br />
 - Construya la tabla de contingencia.<br />
 - Realice el test de homogeneidad (chi-cuadrado) para evaluar si la
@@ -1673,8 +1616,7 @@ distribución de preferencias es similar entre las regiones.<br />
 </div>
 <div id="ejercicio-4-test-exacto-de-fisher" class="section level3">
 <h3>Ejercicio 4: Test Exacto de Fisher</h3>
-<p><strong>Enunciado:</strong><br />
-Simule una tabla 2×2 con datos pequeños para las variables “Uso de
+<p>Simule una tabla 2×2 con datos pequeños para las variables “Uso de
 medicamento” (Sí/No) y “Recuperación” (Mejora/No mejora) con un total de
 20 observaciones.<br />
 - Realice el test exacto de Fisher.<br />
@@ -1682,8 +1624,7 @@ medicamento” (Sí/No) y “Recuperación” (Mejora/No mejora) con un total de
 </div>
 <div id="ejercicio-5-test-de-homocedasticidad" class="section level3">
 <h3>Ejercicio 5: Test de Homocedasticidad</h3>
-<p><strong>Enunciado:</strong><br />
-Utilice el dataset <em>iris</em> o simule tres grupos de datos
+<p>Utilice el dataset <em>iris</em> o simule tres grupos de datos
 numéricos.<br />
 - Realice un test de homocedasticidad (puede usar el test de Bartlett)
 para evaluar si las varianzas son iguales entre los grupos.<br />
@@ -1692,8 +1633,7 @@ varianzas.</p>
 </div>
 <div id="ejercicio-6-test-de-normalidad" class="section level3">
 <h3>Ejercicio 6: Test de Normalidad</h3>
-<p><strong>Enunciado:</strong><br />
-Utilice la variable <em>mpg</em> del dataset <em>mtcars</em>.<br />
+<p>Utilice la variable <em>mpg</em> del dataset <em>mtcars</em>.<br />
 - Realice el test de normalidad utilizando el test de
 Shapiro-Wilk.<br />
 - Genere un Q-Q plot para visualizar la normalidad.<br />
@@ -1701,8 +1641,7 @@ Shapiro-Wilk.<br />
 </div>
 <div id="ejercicio-integrador" class="section level3">
 <h3>Ejercicio Integrador</h3>
-<p><strong>Enunciado:</strong><br />
-Utilizando el dataset <em>iris</em> y simulaciones, realice lo
+<p>Utilizando el dataset <em>iris</em> y simulaciones, realice lo
 siguiente: 1. Cree una variable categórica “Ancho_Sepal” a partir de
 <em>Sepal.Width</em> (defina “Ancho” si el valor es mayor o igual a la
 mediana y “Estrecho” si es menor). 2. Realice un test de homogeneidad
@@ -2018,8 +1957,7 @@ ggplot(iris, aes(x = Species, fill = Ancho_Sepal)) +
 </div>
 <div id="ejercicio-test-de-independencia" class="section level2">
 <h2>Ejercicio Test de independencia</h2>
-<p><strong>Enunciado:</strong><br />
-Simule un dataset de 200 observaciones con dos variables
+<p>Simule un dataset de 200 observaciones con dos variables
 categóricas:<br />
 - <strong>Color:</strong> con niveles “Rojo” y “Verde” (donde la
 probabilidad de “Rojo” es 60% y “Verde” 40%).<br />

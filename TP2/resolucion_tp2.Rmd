@@ -1,0 +1,68 @@
+---
+title: "Trabajo Practico 2"
+output: html_notebook
+---
+
+```{r}
+library(readr)
+library(tidyverse)
+library(ggplot2)
+```
+```{r}
+file_path <- "Mobiles Dataset (2025).csv"
+celu_dataset <- read_csv(file_path)
+head(celu_dataset)
+```
+```{r}
+clean_numeric_column <- function(column) {
+  as.numeric(gsub("(?<![0-9])\\.|[^0-9.]", "", column, perl = TRUE))
+}
+rename_with_units <- function(df) {
+  col_names <- colnames(df)
+  unit_mappings <- list(
+    "Screen Size" = "_inches",
+    "Battery Capacity" = "_mAh",
+    "Back Camera" = "_MP",
+    "Front Camera" = "_MP",
+    "RAM" = "_GB",
+    "Mobile Weight" = "_g",
+    "Launched Price (USA)" = "_USD"
+  )
+  
+  for (col in names(unit_mappings)) {
+    if (col %in% col_names) {
+      new_colname <- paste0(col, unit_mappings[[col]])
+      df[[new_colname]] <- clean_numeric_column(df[[col]])
+      df[[col]] <- NULL
+    }
+  }
+  return(df)
+}
+
+celu_dataset <- rename_with_units(celu_dataset)
+head(celu_dataset)
+```
+
+```{r}
+((qnorm(1-0.025) +  qnorm(1-0.01))*175 / 100)**2
+
+```
+
+```{r}
+# Calcular el tamaño de muestra requerido
+resultado <- power.t.test(delta = 100,      # Diferencia a detectar (nits)
+                          sd = 175,          # Desviación estándar (nits)
+                          sig.level = 0.05, # Nivel de significancia (5%)
+                          power = 0.99,      # Potencia deseada (99%)
+                          type = "one.sample",
+                          alternative = "two.sided")
+
+# Mostrar los resultados
+print(resultado)
+
+```
+
+
+
+
+

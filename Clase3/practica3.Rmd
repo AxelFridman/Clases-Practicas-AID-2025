@@ -381,7 +381,7 @@ ggplot(df_binom, aes(x = x, y = densidad)) +
 ## 4. Ejercicios
 
 ### Ejercicio 1: Media de una Distribución Normal  
-- **Enunciado:**  
+-   
   Simulen una muestra de 40 datos de una distribución normal con media 15 y desviación 3. Planteen la hipótesis:  
   - H₀: La media es 14.  
   - H₁: La media es diferente de 14.  
@@ -389,18 +389,18 @@ ggplot(df_binom, aes(x = x, y = densidad)) +
 - **Pista:** Use funciones `rnorm()`, `mean()`, `sd()`, y `pnorm()`.
 
 ### Ejercicio 2: Visualización del p‑valor  
-- **Enunciado:**  
+-   
   Utilizando ggplot2, grafiquen la distribución normal estándar y marquen la región que corresponde al p‑valor para un valor observado de 2.2 en una prueba de dos colas.  
 - **Pista:** Use `geom_area()` para sombrear las colas de la distribución.
 
 ### Ejercicio 3: Experimento de Lanzamiento de Moneda  
-- **Enunciado:**  
+-   
   Simulen 200 lanzamientos de una moneda (con probabilidad 0.5) y supongan que obtuvieron un número inusual de caras (por ejemplo, 130).  
   Calcular el p‑valor usando la distribución binomial y explique si se rechazaría la hipótesis de moneda justa (usando α = 0.05).  
 - **Pista:** Use `rbinom()`, `pbinom()` y visualice la distribución.
 
 ### Ejercicio 4: Comparación de Dos Grupos Simulados  
-- **Enunciado:**  
+-   
   Simulen dos grupos independientes de 50 observaciones cada uno:  
   - Grupo A: datos generados con media 20 y desviación 4.  
   - Grupo B: datos generados con media 22 y desviación 4.  
@@ -587,18 +587,18 @@ ggplot(datos_cat, aes(x = genero, fill = preferencia)) +
 ## 4. Ejercicios
 
 ### Ejercicio 1: Errores Tipo I y Tipo II  
-- **Enunciado:**  
+-   
   Simule una muestra de 50 datos con una media de 12 y desviación 3. Plantee la prueba:  
   - H₀: µ = 10  
   - H₁: µ ≠ 10  
   Calcule el estadístico de prueba, el p‑valor y discuta en qué situaciones podría incurrirse en un Error Tipo I o en un Error Tipo II.
 
 ### Ejercicio 2: Potencia de la Prueba  
-- **Enunciado:**  
+-   
   Utilice la función `power.t.test()` para determinar el tamaño muestral necesario para alcanzar una potencia de al menos 0.85, considerando un tamaño del efecto (diferencia) de 2, una desviación estándar de 3 y un nivel de significancia de 0.05.
 
 ### Ejercicio 3: Test de Independencia  
-- **Enunciado:**  
+-   
   Dado el siguiente conjunto de datos simulados que representan la relación entre el tipo de estudio (Presencial, Virtual) y la satisfacción (Alta, Media, Baja) de los estudiantes, realice lo siguiente:  
   1. Construya la tabla de contingencia.  
   2. Realice el test de chi-cuadrado para determinar si existe una relación entre las dos variables.  
@@ -607,7 +607,7 @@ ggplot(datos_cat, aes(x = genero, fill = preferencia)) +
 > *Pista:* Puede crear los datos utilizando la función `sample()`.
 
 ### Ejercicio 4 (Integrador y más extenso):  
-- **Enunciado:**  
+-   
   Combine los conceptos de errores, potencia y test de independencia en el siguiente escenario:  
   1. Simule dos grupos de estudiantes de 100 observaciones cada uno, donde se mida la nota final. Suponga que el Grupo A tiene una media de 75 y el Grupo B de 80 (con desviación 10).  
   2. Realice una prueba (utilizando el enfoque de re-muestreo o métodos paramétricos) para determinar si existe una diferencia en las medias.  
@@ -1031,10 +1031,8 @@ ggplot(df, aes(x = normal_real)) +
 
 # Sección de Ejercicios
 
-A continuación se presentan ejercicios prácticos. Se propone al menos un ejercicio por tema y un ejercicio integrador.
-
 ### Ejercicio 1: Bootstrapping para Proporciones
-**Enunciado:**  
+  
 Simule una muestra de 150 observaciones de una variable categórica con niveles “Aprobado” y “Reprobado” donde la probabilidad de “Aprobado” sea 0.70.  
 - Calcule la proporción original de “Aprobado”.  
 - Realice 2000 réplicas de bootstrapping para estimar dicha proporción.  
@@ -1043,7 +1041,7 @@ Simule una muestra de 150 observaciones de una variable categórica con niveles 
 
 
 ### Ejercicio 2: Test de Permutaciones para Proporciones
-**Enunciado:**  
+  
 Simule dos grupos con 100 observaciones cada uno.  
 - En el Grupo 1, la proporción de “Aprobado” es 0.80; en el Grupo 2, es 0.65.  
 - Realice un test de permutaciones con 3000 réplicas para evaluar si la diferencia en proporciones es significativa.  
@@ -1052,7 +1050,7 @@ Simule dos grupos con 100 observaciones cada uno.
 
 
 ### Ejercicio 3: Test de Homogeneidad
-**Enunciado:**  
+  
 Utilice datos simulados para tres regiones donde se clasifica la preferencia de un producto en tres niveles: Alta, Media y Baja.  
 - Construya la tabla de contingencia.  
 - Realice el test de homogeneidad (chi-cuadrado) para evaluar si la distribución de preferencias es similar entre las regiones.  
@@ -1061,7 +1059,7 @@ Utilice datos simulados para tres regiones donde se clasifica la preferencia de 
 
 
 ### Ejercicio 4: Test Exacto de Fisher
-**Enunciado:**  
+  
 Simule una tabla 2×2 con datos pequeños para las variables “Uso de medicamento” (Sí/No) y “Recuperación” (Mejora/No mejora) con un total de 20 observaciones.  
 - Realice el test exacto de Fisher.  
 - Interprete el p‑valor y concluya sobre la asociación.
@@ -1069,7 +1067,7 @@ Simule una tabla 2×2 con datos pequeños para las variables “Uso de medicamen
 
 
 ### Ejercicio 5: Test de Homocedasticidad
-**Enunciado:**  
+  
 Utilice el dataset *iris* o simule tres grupos de datos numéricos.  
 - Realice un test de homocedasticidad (puede usar el test de Bartlett) para evaluar si las varianzas son iguales entre los grupos.  
 - Reporte el p‑valor y concluya si se cumple el supuesto de igualdad de varianzas.
@@ -1077,7 +1075,7 @@ Utilice el dataset *iris* o simule tres grupos de datos numéricos.
 
 
 ### Ejercicio 6: Test de Normalidad
-**Enunciado:**  
+  
 Utilice la variable *mpg* del dataset *mtcars*.  
 - Realice el test de normalidad utilizando el test de Shapiro-Wilk.  
 - Genere un Q-Q plot para visualizar la normalidad.  
@@ -1086,7 +1084,7 @@ Utilice la variable *mpg* del dataset *mtcars*.
 
 
 ### Ejercicio Integrador
-**Enunciado:**  
+  
 Utilizando el dataset *iris* y simulaciones, realice lo siguiente:
 1. Cree una variable categórica “Ancho_Sepal” a partir de *Sepal.Width* (defina “Ancho” si el valor es mayor o igual a la mediana y “Estrecho” si es menor).
 2. Realice un test de homogeneidad para evaluar si la distribución de “Ancho_Sepal” es la misma entre las tres especies.
@@ -1345,7 +1343,7 @@ ggplot(iris, aes(x = Species, fill = Ancho_Sepal)) +
 
 ## Ejercicio Test de independencia
 
-**Enunciado:**  
+  
 Simule un dataset de 200 observaciones con dos variables categóricas:  
 - **Color:** con niveles "Rojo" y "Verde" (donde la probabilidad de "Rojo" es 60% y "Verde" 40%).  
 - **Aprobación:** con niveles "Sí" y "No".  
