@@ -1,24 +1,54 @@
+
 ---
-title: "Trabajo Practico 2"
+title: "Trabajo Práctico 2"
 output: html_notebook
 ---
 
-```{r}
+
+
+## Preparación del Entorno
+
+```{r setup, include=FALSE}
+# Desactivamos notaciones científicas para mayor claridad
+options(scipen=999)
+
+# Cargamos librerías
 library(readr)
 library(tidyverse)
 library(ggplot2)
 ```
+
+
+## 0. Lectura de Datos
+
 ```{r}
+# Reemplazar con la ruta y nombre de tu archivo CSV
 file_path <- "Mobiles Dataset (2025).csv"
 celu_dataset <- read_csv(file_path)
+
+# Inspeccionar primeras filas
 head(celu_dataset)
 ```
+
+
+## 1. Limpieza y Estandarización de Datos
+
+Se requiere:
+- Eliminar caracteres no numéricos de columnas que deben ser numéricas.
+- Renombrar columnas indicando sus unidades (ej. `_USD`, `_GB`, `_mAh`, etc.).
+
+### Funciones de Limpieza
+
 ```{r}
+# Función que elimina todo lo que no sea dígito o punto decimal
 clean_numeric_column <- function(column) {
+  # gsub con patrón: eliminar todo excepto dígitos y punto
   as.numeric(gsub("(?<![0-9])\\.|[^0-9.]", "", column, perl = TRUE))
 }
+
+# Función para renombrar columnas y crear nuevas con sufijos de unidad
 rename_with_units <- function(df) {
-  col_names <- colnames(df)
+  # Diccionario de mapeos: "Columna original" -> "Sufijo de unidad"
   unit_mappings <- list(
     "Screen Size" = "_inches",
     "Battery Capacity" = "_mAh",
@@ -30,39 +60,397 @@ rename_with_units <- function(df) {
   )
   
   for (col in names(unit_mappings)) {
-    if (col %in% col_names) {
+    if (col %in% colnames(df)) {
       new_colname <- paste0(col, unit_mappings[[col]])
       df[[new_colname]] <- clean_numeric_column(df[[col]])
+      # Eliminamos la columna original para no duplicar
       df[[col]] <- NULL
     }
   }
   return(df)
 }
+```
 
+### Aplicación sobre el Dataset
+
+```{r}
 celu_dataset <- rename_with_units(celu_dataset)
 head(celu_dataset)
 ```
 
+
+
+## 2. Cálculo del Tamaño de Muestra
+
+Se cree que el brillo promedio de los celulares es 500 nits con \(\sigma = 175\) (conocida).  
+Queremos detectar una diferencia de ±100 nits.  
+- Error tipo I (\(\alpha\)) < 5%,  
+- Error tipo II (\(\beta\)) < 1% (lo que equivale a una potencia > 99%).
+
+### i) Planteo de hipótesis
+
+- \(H_0: \mu = 500\) (o no hay diferencia, es decir \(\mu \leq 500\) si esperamos 500 nits)  
+- \(H_1: \mu \neq 500\) (la media difiere en al menos 100 nits)
+
+### ii) ¿Hipótesis unilateral o bilateral?
+
+Dado que se menciona la capacidad de detectar diferencias de ±100, es un **test bilateral** (two-sided).
+
+### iii) Cálculo manual según la fórmula
+
+\[
+\sigma = \frac{\delta \cdot \sqrt{n}}{z_{1-\alpha/2}+z_{1-\beta}}
+\quad \Longleftrightarrow \quad
+n = \left(\frac{z_{1-\alpha/2} + z_{1-\beta}}{\delta} \cdot \sigma \right)^2
+\]
+
+Con \(\alpha=0.05 \implies z_{1-\alpha/2} = z_{0.975} \approx 1.96\)  
+Con \(\beta=0.01 \implies z_{1-\beta} = z_{0.99} \approx 2.33\)  
+\(\sigma=175\), \(\delta=100\).
+
 ```{r}
-((qnorm(1-0.025) +  qnorm(1-0.01))*175 / 100)**2
+n_manual <- ((qnorm(1-0.025) + qnorm(1-0.01)) * 175 / 100)^2
+n_manual
+```
+
+Interpretar el resultado y redondearlo al entero inmediato superior si no da un entero exacto.
+
+### iv) Recalcular usando `power.t.test`
+
+Como la desviación estándar a veces se estima, podemos usar la función `power.t.test` (aunque esta asume un test t, mientras que el ejemplo original está en contexto z, es ilustrativo para el cálculo de n).
+
+```{r}
+resultado_power <- power.t.test(delta = 100,     # Diferencia a detectar
+                                sd = 175,        # Desviación estándar
+                                sig.level = 0.05,# Nivel de significancia (5%)
+                                power = 0.99,    # Potencia (99%)
+                                type = "one.sample",
+                                alternative = "two.sided")
+
+resultado_power
+```
+
+- Si el resultado no es entero, se **redondea hacia arriba** (ceiling). Por ejemplo:
+
+```{r}
+n_sugerido <- ceiling(resultado_power$n)
+n_sugerido
+```
+
+
+
+## Ejercicio A: Estadísticas Descriptivas y Visualizaciones
+
+### a) Estadísticas Descriptivas
+
+Calculemos estadísticas básicas para las columnas limpias (por ejemplo: `Screen Size_inches`, `Battery Capacity_mAh`, `RAM_GB`, `Launched Price (USA)_USD`, etc.).
+
+```{r}
+# Seleccionar columnas numéricas de interés
+numeric_vars <- c("Screen Size_inches",
+                  "Battery Capacity_mAh",
+                  "Back Camera_MP",
+                  "Front Camera_MP",
+                  "RAM_GB",
+                  "Mobile Weight_g",
+                  "Launched Price (USA)_USD")
+
+# Usamos summary() para ver un resumen rápido
+summary(celu_dataset[numeric_vars])
+```
+
+Podríamos también calcular manualmente:
+
+```{r}
+celu_dataset %>%
+  select(all_of(numeric_vars)) %>%
+  summarise_all(list(
+    Media = ~mean(. , na.rm = TRUE),
+    Mediana = ~median(. , na.rm = TRUE),
+    Min = ~min(. , na.rm = TRUE),
+    Max = ~max(. , na.rm = TRUE),
+    SD = ~sd(. , na.rm = TRUE)
+  ))
+```
+
+Observamos si hay valores atípicos (outliers) en la comparación entre mínimo/máximo y media/mediana.
+
+#### Comentarios sobre homogeneidad/variabilidad
+- Si hay rangos muy amplios, sugiere alta variabilidad.
+- Si la media y mediana difieren mucho, sugiere asimetría de la distribución.
+```{r}
+max_price_row <- celu_dataset[which.max(celu_dataset$`Launched Price (USA)_USD`), ]
+print(max_price_row)
+celu_dataset <- celu_dataset[-which.max(celu_dataset$`Launched Price (USA)_USD`), ]
 
 ```
 
+### b) Visualizaciones
+
+#### Histogramas
+
+Por ejemplo, para `Battery Capacity_mAh` y `Launched Price (USA)_USD`:
+
 ```{r}
-# Calcular el tamaño de muestra requerido
-resultado <- power.t.test(delta = 100,      # Diferencia a detectar (nits)
-                          sd = 175,          # Desviación estándar (nits)
-                          sig.level = 0.05, # Nivel de significancia (5%)
-                          power = 0.99,      # Potencia deseada (99%)
-                          type = "one.sample",
-                          alternative = "two.sided")
+# Histograma de Battery Capacity (sin tildes)
+ggplot(celu_dataset, aes(x = `Battery Capacity_mAh`)) +
+  geom_histogram(bins = 30) +
+  labs(title = "Distribucion de la Capacidad de Bateria (mAh)",
+       x = "mAh",
+       y = "Frecuencia")
 
-# Mostrar los resultados
-print(resultado)
+# Histograma de Precio de Lanzamiento (USD)
+ggplot(celu_dataset, aes(x = `Launched Price (USA)_USD`)) +
+  geom_histogram(bins = 30) +
+  labs(title = "Distribucion de Precios (USD)",
+       x = "Precio (USD)",
+       y = "Frecuencia")
 
+```
+
+Observamos forma (simétrica, sesgada, multimodal, etc.).
+
+#### Boxplot
+
+
+```{r}
+# Boxplot de peso del móvil agrupado por marca
+ggplot(celu_dataset, aes(x = `Company Name`, y = `Mobile Weight_g`)) +
+  geom_boxplot() +
+  labs(title = "Boxplot de Peso por Marca",
+       x = "Marca",
+       y = "Peso (g)") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 ```
 
 
 
+
+## Ejercicio B: Test de Normalidad
+
+Se eligen 1-2 columnas, por ejemplo: `Launched Price (USA)_USD` y `Battery Capacity_mAh`.
+
+### Test Shapiro-Wilk
+
+```{r}
+shapiro.test(celu_dataset$`Launched Price (USA)_USD`)
+shapiro.test(celu_dataset$`Battery Capacity_mAh`)
+```
+
+- Si el p-value < 0.05, rechazamos normalidad.
+- Si el p-value ≥ 0.05, no podemos rechazar la normalidad.
+
+### Q-Q plot
+
+Para `Launched Price (USA)_USD`, por ejemplo:
+
+```{r}
+ggplot(celu_dataset, aes(sample = `Launched Price (USA)_USD`)) +
+  stat_qq() + 
+  stat_qq_line() +
+  labs(title = "Q-Q Plot de Precio de Lanzamiento (USD)")
+```
+
+Interpretación: si los puntos se alejan mucho de la línea, hay desviaciones de la normalidad.
+
+
+
+
+## Ejercicio C: Correlación y Significancia
+
+Elijamos, por ejemplo, **`Launched Price (USA)_USD`** y **`RAM_GB`**.
+
+### Diagrama de dispersión
+
+```{r}
+ggplot(celu_dataset, aes(x = RAM_GB, y = `Launched Price (USA)_USD`)) +
+  geom_point() +
+  labs(title = "Relacion entre RAM (GB) y Precio (USD)",
+       x = "RAM (GB)",
+       y = "Precio (USD)") +
+  scale_x_continuous(limits = c(0, 17))
+
+```
+```{r}
+celu_dataset %>%
+  group_by(RAM_GB) %>%
+  summarise(Precio_Promedio = mean(`Launched Price (USA)_USD`, na.rm = TRUE)) %>%
+  ggplot(aes(x = RAM_GB, y = Precio_Promedio)) +
+  geom_point() +
+  geom_line() +
+  labs(title = "Precio promedio por cantidad de RAM",
+       x = "RAM (GB)",
+       y = "Precio promedio (USD)") +
+  scale_x_continuous(limits = c(0, 17))
+```
+
+### Correlación de Pearson
+
+```{r}
+cor_test_result <- cor.test(celu_dataset$RAM_GB,
+                            celu_dataset$`Launched Price (USA)_USD`,
+                            method = "pearson",
+                            use = "complete.obs") # ignora NAs
+cor_test_result
+```
+
+- Reportar valor de correlación (\(r\)), p-value y si es significativa con \(\alpha = 0.05\).
+- Comentar la fuerza de correlación (ej. si \(r \approx 0.7\) es “fuerte”, 0.4-0.6 “moderada”, etc.).
+
+
+
+
+## Ejercicio D: Test t para una Muestra
+
+Ejemplo: **Peso de los móviles** (\(Mobile Weight_g\))  
+Hipótesis:
+
+- \(H_0: \mu \leq 180\) g (o \(\mu = 180\) g)
+- \(H_1: \mu > 180\) g  
+
+En R:
+
+```{r}
+t_test_result <- t.test(celu_dataset$`Mobile Weight_g`,
+                        mu = 180,
+                        alternative = "greater")
+t_test_result
+```
+
+Interpretar:
+- Valor t,
+- p-value,
+- Si p-value < 0.05 => se rechaza \(H_0\), indicando que la media es **significativamente mayor** a 180 g.
+
+
+
+
+## Ejercicio E: Test Chi-cuadrado de Independencia
+
+1. Crear variable categórica `High Battery`:  
+   - "Alta" si `Battery Capacity_mAh` ≥ mediana  
+   - "Baja" si es menor a la mediana  
+
+2. Usar otra variable categórica, por ejemplo `Brand`.
+
+### Creación de la variable `High Battery`
+
+```{r}
+mediana_bateria <- median(celu_dataset$`Battery Capacity_mAh`, na.rm = TRUE)
+
+celu_dataset <- celu_dataset %>%
+  mutate(High_Battery = if_else(`Battery Capacity_mAh` >= mediana_bateria,
+                                "Alta", "Baja"))
+```
+
+### Tabla de contingencia y test chi-cuadrado
+
+```{r}
+tabla_contingencia <- table(celu_dataset$`Company Name`, celu_dataset$High_Battery)
+tabla_contingencia
+
+chisq_result <- chisq.test(tabla_contingencia)
+chisq_result
+```
+
+Interpretar:
+- p-value < 0.05 ⇒ Existe asociación significativa entre las variables.
+- p-value ≥ 0.05 ⇒ No se puede rechazar la independencia.
+
+### Visualización con barplot apilado
+
+Usando `ggplot2`:
+
+```{r}
+ggplot(celu_dataset, aes(x = `Company Name`, fill = High_Battery)) +
+  geom_bar(position = "fill") +
+  labs(title = "Proporcion de baterias altas/bajas por Marca",
+       x = "Marca",
+       y = "Proporcion") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+
+
+## Ejercicio F: Ejercicios Adicionales de Tamaño de Muestra
+
+### i) Diferencia a detectar
+
+```r
+power.t.test(delta=0.5, sd=1, power=0.9, sig.level=0.05,
+             alternative="two.sided", type="one.sample")
+```
+
+Código en R:
+
+```{r}
+power.t.test(delta = 0.5,
+             sd = 1,
+             power = 0.9,
+             sig.level = 0.05,
+             alternative = "two.sided",
+             type = "one.sample")
+```
+
+El resultado muestra el tamaño muestral aproximado.
+
+### ii) Variar \(\alpha\)
+
+Si cambiamos \(\alpha\), por ejemplo a 0.01 o 0.10, la función `power.t.test` mostrará cómo varía `n`.  
+- A menor \(\alpha\), normalmente se **incrementa** el tamaño muestral requerido (hay que ser más “estricto”).
+
+### iii) Discusión
+
+- Si \(\alpha\) cambia y dejamos `n` fijo, afectará \(\beta\).  
+  - **Reducir \(\alpha\)** sin cambiar \(n\) suele **aumentar \(\beta\)** (menos poder).  
+- Si aumentamos \(n\), en general **disminuye \(\beta\)** (más potencia).
+
+
+
+## Ejercicio G: Bootstrap para Intervalos de Confianza
+
+Suponiendo que elegimos `Launched Price (USA)_USD` como columna numérica positiva.
+
+### Procedimiento Bootstrap
+
+1. Tomamos muchas muestras (con reemplazo) de los datos de precio.  
+2. Calculamos la media de cada muestra.  
+3. Obtenemos la distribución bootstrap de la media.  
+4. Estimamos el IC al 95% con percentiles 2.5% y 97.5%.
+
+```{r}
+set.seed(123)  # Para reproducibilidad
+
+# Vector de precios (eliminando NA)
+precios <- na.omit(celu_dataset$`Launched Price (USA)_USD`)
+
+B <- 1000  # número de remuestreos
+boot_means <- numeric(B)
+
+for(i in 1:B) {
+  sample_indices <- sample(seq_along(precios), size = length(precios), replace = TRUE)
+  boot_sample <- precios[sample_indices]
+  boot_means[i] <- mean(boot_sample)
+}
+
+# IC al 95% (percentiles 2.5% y 97.5%)
+IC_95 <- quantile(boot_means, probs = c(0.025, 0.975))
+IC_95
+```
+
+### Visualización de la distribución bootstrap
+
+```{r}
+# Histograma de las medias bootstrap
+ggplot(data.frame(boot_means), aes(x = boot_means)) +
+  geom_histogram(bins=30) +
+  geom_vline(xintercept = IC_95[1], linetype = "dashed") +
+  geom_vline(xintercept = IC_95[2], linetype = "dashed") +
+  labs(title = "Distribucion Bootstrap de la Media del Precio (USD)",
+       x = "Media (Bootstrap)",
+       y = "Frecuencia")
+```
+
+Con esto, se obtiene un intervalo de confianza no paramétrico para la media.
 
 
