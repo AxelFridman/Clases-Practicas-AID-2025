@@ -232,7 +232,7 @@ determine_mode(categorias) # Debería devolver "rojo"
 ```{r media_podada}
 # Calcula la media podada excluyendo un 10% de los valores en cada extremo
 x <- c(10, 15, 20, 25, 30, 100) # El 100 es un outlier
-mean(x, trim=0.1)
+mean(x, trim=0.18)
 ```
 
 ### **Rango**
@@ -863,3 +863,8 @@ ggplot(data_melt, aes(Variables, Observaciones, fill=Valor)) +
   scale_fill_gradient(low="blue", high="red") +
   ggtitle("Mapa de Calor")
 ```
+
+https://diegokoz.github.io/intro_ds/fuentes/ggplot2-cheatsheet-2.1-Spanish.pdf
+
+https://nyu-cdsc.github.io/learningr/assets/data-transformation.pdf
+
