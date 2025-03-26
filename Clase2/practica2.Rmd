@@ -362,7 +362,7 @@ sd(W,na.rm=T) # otra funcion que requiere excluir los valores no disponibles
     simular la extracción de una bola (asignar, por ejemplo, el 1 a bola
     blanca y 0 a negra).
 
--   **Ejercicio 8** Simular 8 extracciones con reemplazamiento de la
+-   **Ejercicio 8** Simular 8 extracciones con reemplazo de la
     urna del ejercicio 7.
 
 -   **Ejercicio 9** Calcular las frecuencias porcentuales de la variable
@@ -1281,7 +1281,7 @@ summary(datos)
 
 
 
-# Sección 3: Resoluciones Paso a Paso
+# Sección 3: Resoluciones
 
 
 ## Ejercicio 1: Detección de NA
