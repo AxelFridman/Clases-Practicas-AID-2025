@@ -8,7 +8,6 @@ output:
 
 ## 1. Instalación de librerías y carga de datos
 
-En este primer bloque se instalan y cargan las librerías necesarias. A continuación se lee el archivo CSV que contiene el dataset.
 
 ```{r}
 #install.packages("readr")
@@ -17,7 +16,6 @@ library(tidyverse)
 library(ggplot2)
 ```
 
-En el siguiente bloque se define la ruta del archivo, se carga el dataset y se visualizan las primeras filas:
 
 ```{r}
 file_path <- "dirty_cafe_sales.csv"

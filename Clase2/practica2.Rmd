@@ -14,6 +14,76 @@ En R, las distribuciones de probabilidad tienen cuatro tipos de funciones:
 3. **Funciones cuantil o inversas** (`q...`): Devuelven el valor de la variable aleatoria correspondiente a un cuantil dado.
 4. **Funciones generadoras de números aleatorios** (`r...`): Se usan para generar números aleatorios (ya vistas en otra sección).
 
+### **Distribución Bernoulli**
+
+```{r}
+sample(c(0,1), prob = c(0.5, 0.5), size=1, replace = T)
+```
+
+### **Distribución Binomial**
+
+```{r binomial}
+# Probabilidad de obtener exactamente 3 éxitos en 10 ensayos con p = 0.8
+n <- 10
+k <- 3
+p <- 0.8
+combinatorio_n_k <- factorial(n)/(factorial(k)*factorial(n-k) )
+funcion_masa_en_k <- combinatorio_n_k * p**k * (1-p)**(n-k)
+print(funcion_masa_en_k)
+print(dbinom(3, size = 10, prob = 0.8))
+```
+```{r}
+
+# Probabilidad acumulada P(X <= 4) en una binomial (12, 0.2)
+probaTotalAcumulada <- 0
+for (i in c(0:4)){
+  probaTotalAcumulada <- probaTotalAcumulada + dbinom(i, size = 12, prob = 0.2)
+}
+print(probaTotalAcumulada)
+
+print(pbinom(4, size = 12, prob = 0.2))
+
+```
+
+```{r}
+
+
+# Cuantil 80% de una binomial (10, 0.5)
+qbinom(0.8, size = 10, prob = 0.5)
+```
+
+### **Distribución Poisson**
+
+```{r poisson}
+# Probabilidad de obtener exactamente 4 eventos con media lambda = 2
+dpois(4, lambda = 2)
+
+# Probabilidad acumulada P(X <= 4) en una Poisson con lambda = 2
+ppois(4, lambda = 2)
+
+# Cuantil 90% de una Poisson con lambda = 2
+qpois(0.90, lambda = 2)
+
+
+```
+
+### **Distribución Exponencial**
+
+```{r exponential}
+# Densidad en x = 1 de una distribución exponencial con tasa lambda = 2
+dexp(1, rate = 2)
+
+# Probabilidad acumulada P(X <= 1) en una exponencial con lambda = 2
+pexp(1, rate = 2)
+
+# Cuantil 75% de una exponencial con lambda = 2
+qexp(0.75, rate = 2)
+
+curve(dexp(x, rate = 2), from = 0, to = 3, lwd = 2, col = "steelblue", 
+      ylab = "Densidad", xlab = "x", main = "PDF de la Exponencial (λ = 2)")
+
+```
+
 ### **Ejemplo con una Distribución Normal**
 
 ```{r normal}
@@ -29,6 +99,73 @@ qnorm(0.90, mean = 2, sd = 3)
 # Probabilidad de que X esté entre -1 y 1 en una normal estándar
 pnorm(1, mean = 0, sd = 1) - pnorm(-1, mean = 0, sd = 1)
 ```
+```{r}
+lambda <- 1
+com <- -2
+fin <- lambda+5
+x <- com:fin
+xnorm <- seq(com, fin, 0.01)
+poisson_vals <- dpois(x, lambda)
+normal_vals <- dnorm(xnorm, mean = lambda, sd = sqrt(lambda))
+
+plot(x, poisson_vals, type = "h", col = "blue", lwd = 2,
+     main = "Poisson vs Normal",
+     ylab = "Densidad", xlab = "x")
+lines(xnorm, normal_vals, col = "red", lwd = 2)
+legend("topright", legend = c("Poisson", "Normal"), col = c("blue", "red"), lwd = 2)
+
+```
+###  **Ley de los grandes numeros**
+
+```{r}
+set.seed(123)
+
+# Simular 600 lanzamientos de una moneda cargada (Bernoulli con p = 0.7)
+n <- 600
+x <- rbinom(n, size = 1, prob = 0.7)
+
+# Calcular media acumulada
+media_acumulada <- cumsum(x) / (1:n)
+
+# Graficar
+plot(media_acumulada, type = "l", col = "blue", lwd = 2,
+     main = "Ley de los Grandes Números (LGN)",
+     xlab = "Número de observaciones",
+     ylab = "Media acumulada")
+abline(h = 0.7, col = "red", lty = 2)  # Línea de la media teórica
+legend("bottomright", legend = c("Media acumulada", "Media verdadera"),
+       col = c("blue", "red"), lwd = 2, lty = c(1, 2))
+
+```
+### **Teorema central del limite**
+
+```{r}
+set.seed(220)
+
+# Parámetros
+n_muestras <- 100000    # cuántas muestras
+tamaño_muestra <- 50   # tamaño de cada muestra
+
+# Crear un vector para guardar las medias muestrales
+medias <- numeric(n_muestras)
+
+# Simular
+for (i in 1:n_muestras) {
+  muestra <- rexp(tamaño_muestra, rate = 1)  # Distribución exponencial (media = 1)
+  medias[i] <- mean(muestra)
+}
+
+# Graficar histograma de las medias
+hist(medias, breaks = 50, probability = TRUE, col = "skyblue",
+     main = "Teorema Central del Límite (TCL)",
+     xlab = "Medias muestrales")
+
+# Agregar curva normal teórica
+curve(dnorm(x, mean = 1, sd = 1/sqrt(tamaño_muestra)), add = TRUE, col = "red", lwd = 2)
+legend("topright", legend = c("Medias muestrales", "Normal teórica"),
+       col = c("skyblue", "red"), lwd = 2)
+
+```
 
 ### **Distribución t de Student**
 
@@ -42,8 +179,45 @@ pt(2, df = 10)
 # Cuantil 95% de una t de Student con 10 grados de libertad
 qt(0.95, df = 10)
 ```
+```{r}
+library(shiny)
+
+ui <- fluidPage(
+  titlePanel("Comparación: t de Student vs Normal estándar"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("df", "Grados de libertad (df):",
+                  min = 1, max = 100, value = 1, step = 1)
+    ),
+    mainPanel(
+      plotOutput("distPlot")
+    )
+  )
+)
+
+server <- function(input, output) {
+  output$distPlot <- renderPlot({
+    curve(dt(x, df = input$df), from = -5, to = 5, col = "blue", lwd = 2,
+          ylab = "Densidad", xlab = "x", main = paste("t de Student (df =", input$df, ") vs Normal"))
+    curve(dnorm(x), from = -5, to = 5, col = "red", lwd = 2, add = TRUE, lty = 2)
+    legend("topright", legend = c("t de Student", "Normal estándar"),
+           col = c("blue", "red"), lwd = 2, lty = c(1, 2))
+  })
+}
+
+shinyApp(ui = ui, server = server)
+
+```
 
 ### **Distribución Chi-cuadrado**
+
+Casos de uso:
+
+Pruebas de independencia (Chi-cuadrado)
+
+Análisis de varianza (ANOVA)
+
+Evaluación de bondad de ajuste
 
 ```{r chi_square}
 # Densidad en x = 5 de una chi-cuadrado con 4 grados de libertad
@@ -55,8 +229,22 @@ pchisq(5, df = 4)
 # Cuantil 99% de una chi-cuadrado con 4 grados de libertad
 qchisq(0.99, df = 4)
 ```
+```{r}
+curve(dchisq(x, df = 4), from = 0, to = 15, main = "Distribución Chi-cuadrado (grados de libertad = 4)")
+curve(dchisq(x, df = 1), from = 0, to = 15, main = "Distribución Chi-cuadrado (grados de libertad = 1)")
+curve(dchisq(x, df = 10), from = 0, to = 25, main = "Distribución Chi-cuadrado (grados de libertad = 10)")
+
+```
 
 ### **Distribución F de Snedecor**
+
+Casos de uso:
+
+Comparación de varianzas
+
+ANOVA (prueba F)
+
+y otros..
 
 ```{r f_distribution}
 # Densidad en x = 3 de una F con 5 y 10 grados de libertad
@@ -68,45 +256,11 @@ pf(3, df1 = 5, df2 = 10)
 # Cuantil 95% de una F con 5 y 10 grados de libertad
 qf(0.95, df1 = 5, df2 = 10)
 ```
-
-### **Distribución Exponencial**
-
-```{r exponential}
-# Densidad en x = 1 de una distribución exponencial con tasa lambda = 2
-dexp(1, rate = 2)
-
-# Probabilidad acumulada P(X <= 1) en una exponencial con lambda = 2
-pexp(1, rate = 2)
-
-# Cuantil 75% de una exponencial con lambda = 2
-qexp(0.75, rate = 2)
+```{r}
+curve(df(x, df1 = 5, df2 = 10), from = 0, to = 5, main = "Distribución F (df1 = 5, df2 = 10)")
 ```
 
-### **Distribución Binomial**
 
-```{r binomial}
-# Probabilidad de obtener exactamente 3 éxitos en 10 ensayos con p = 0.5
-dbinom(3, size = 10, prob = 0.5)
-
-# Probabilidad acumulada P(X <= 3) en una binomial (10, 0.5)
-pbinom(3, size = 10, prob = 0.5)
-
-# Cuantil 80% de una binomial (10, 0.5)
-qbinom(0.80, size = 10, prob = 0.5)
-```
-
-### **Distribución Poisson**
-
-```{r poisson}
-# Probabilidad de obtener exactamente 4 eventos con media lambda = 2
-dpois(4, lambda = 2)
-
-# Probabilidad acumulada P(X <= 4) en una Poisson con lambda = 2
-ppois(4, lambda = 2)
-
-# Cuantil 90% de una Poisson con lambda = 2
-qpois(0.90, lambda = 2)
-```
 
 ```{r distribuciones}
 # Generación de muestras de distribuciones conocidas

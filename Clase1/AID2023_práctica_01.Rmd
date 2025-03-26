@@ -89,9 +89,11 @@ signif(pi,2) # devuelve el valor con dos cifras significativas
 abs(-8) # devuelve el valor absoluto
 ```
 
+
 ## Asignación a variables, vectores y matrices, operaciones
 
 <br>
+
 
 ### **Variables**
 
@@ -163,7 +165,7 @@ rev(u) # invierte el orden de las componentes del vector
 veccha<-c("Alicia","Pedro","casa")
 names(vec)<-veccha
 vec["casa"]
-order(veccha)
+order(veccha, decreasing = T)
 sort(veccha)# ordena alfabéticamente las componentes del vector de caracteres
 
 h <- paste(c("a","b","c","d"), 2:5, sep="") # genera pares ordenados 
@@ -171,6 +173,9 @@ h
 t=paste(c("a","b"), 2:6, sep=",") # genera pares ordenados separados por comas
 t
 
+```
+```{r}
+quantile(rep(1:7,1),0.25)
 ```
 
 ```{r operaciones_basicas}
@@ -227,12 +232,14 @@ categorias <- c("rojo", "azul", "verde", "azul", "rojo", "rojo", "azul")
 determine_mode(categorias) # Debería devolver "rojo"
 ```
 
+
 ### **Media Podada (Trimmed Mean)**
 
 ```{r media_podada}
-# Calcula la media podada excluyendo un 10% de los valores en cada extremo
+# Calcula la media podada excluyendo un 18% de los valores en cada extremo
 x <- c(10, 15, 20, 25, 30, 100) # El 100 es un outlier
-mean(x, trim=0.18)
+print(mean(x, trim=0.18))
+print((15+20+25+30)/4)
 ```
 
 ### **Rango**
@@ -265,19 +272,24 @@ sd(x)
 ```{r coef_variacion}
 # Calcula el coeficiente de variación
 x <- c(12, 15, 14, 10, 18, 22, 20, 25)
-sd(x) / mean(x) # Relación entre dispersión y media
+sd(x) / mean(x) * 100 # Relación entre dispersión y media
+# mayor a 20% no homogeneo
 ```
 
 ### **Mediana de Desviaciones Absolutas (MAD)**
 
 ```{r mad}
 # Calcula la MAD
-x <- c(12, 15, 14, 10, 18, 22, 20, 25)
+x <- c(12, 12, 14, 10, 18, 22, 20, 37)
 mediana <- median(x)
 madAManoNoEscalada <- median(abs(x-mediana))
 madAMano <- 1.4826 * madAManoNoEscalada
 madAMano
 mad(x)
+```
+```{r}
+mad(rnorm(10000, 4,2.5))
+
 ```
 
 ### **Asimetría y Curtosis**
@@ -294,6 +306,15 @@ skewness(x)  # Valores positivos indican asimetría a la derecha
 
 # Curtosis (kurtosis)
 kurtosis(x)  # Valores altos indican colas más pesadas que la normal
+```
+```{r}
+norm_0_1 <- rnorm(10000)
+norm_transformada <- norm_0_1 * sqrt(abs(norm_0_1))
+skewness(norm_0_1)
+skewness(norm_transformada)
+kurtosis(norm_0_1)
+kurtosis(norm_transformada)
+
 ```
 
 ```{r funciones 1}
@@ -674,6 +695,9 @@ segments(2013,0,2013,4,lwd=3,lty="dotdash",col=4) # alterna estilos punteado y r
 segments(2014,0,2014,9,lwd=3,lty="twodash",col=5) # estilo doble rayado
 segments(2016,0,2016,5,lwd=3,lty="longdash",col=6) # estilo rayado largo
 
+```
+```{r}
+plot(Modelos, Ventas, type = "l")
 ```
 
 ### Tallo de hoja
