@@ -1,6 +1,7 @@
 ---
 title: "Practica 2 AID 2025"
 output: html_document
+runtime: shiny
 ---
 
 
@@ -333,9 +334,6 @@ sd(W,na.rm=T) # otra funcion que requiere excluir los valores no disponibles
 
 
 ```
-
-<br>
-
 ## Ejercicios
 
 -   **Ejercicio 1** Calcular la media y mediana del vector x y el número
@@ -364,262 +362,117 @@ sd(W,na.rm=T) # otra funcion que requiere excluir los valores no disponibles
 
 -   **Ejercicio 8** Simular 8 extracciones con reemplazo de la
     urna del ejercicio 7.
+    
+-   **Ejercicio 9** Simular una muestra aleatoria de tamaño 10 proveniente de una distribución normal con media 4 y desviación estándar 0.5.
 
--   **Ejercicio 9** Calcular las frecuencias porcentuales de la variable
-    sexo.
+-   **Ejercicio 10** ¿Para qué valor de P se cumple que la probabilidad de que una variable aleatoria con distribución normal N(0, 2) esté entre -P y P es del 85%?
 
--   **Ejercicio 10** Calcular la distribución porcentual de la variable
-    categoría peso por sexo.
+-   **Ejercicio 11** ¿Cuál es el valor de la función de densidad de una normal estándar N(0,1) en el punto donde la acumulación de probabilidad alcanza el 60%?
 
-<br>
 
-------------------------------------------------------------------------
 
-<br>
+Ejercicio 1
+```{r}
+x <- c(1,5,7,9,3,5,6,2,4,7,5,6,9,8,6,2,6,1,4)
 
-## Resueltos
+m <- mean(x)
+M <- median(x)
 
-<br>
-
--   **Ejercicio 1**
-
-x=c(1,5,7,9,3,5,6,2,4,7,5,6,9,8,6,2,6,1,4)
-
-m=mean(x) #calcula la media de los valores del vector
-
-M=median(x) #calcula la mediana de los valores del vector
-
-sum(x\<m) #calcula cuántos valores quedan por debajo de la media m
-
-sum(x\<M) #calcula cuántos valores quedan por debajo de la mediana M
-
--   **Ejercicio 2**
-
-OPCION 1
-
-modulo\<-function(x){
-
-if(x\>=0){
-
-```         
-return(x)
+valores_bajo_media <- sum(x < m)
+valores_bajo_mediana <- sum(x < M)
 ```
 
+
+Ejercicio 2
+```{r}
+# Opción 1
+modulo <- function(x) {
+  if (x >= 0) {
+    return(x)
+  } else {
+    return(-x)
+  }
 }
 
-else{
-
-```         
-return(-x)
+# Opción 2
+modu <- function(x) {
+  y <- abs(x)
+  return(y)
+}
 ```
 
-}
+Ejercicio 3
+```{r}
+cocientes <- numeric(5)
+y <- 1111
 
-}
-
-OPCION 2
-
-modu = function(x) {
-
-y = abs(x)
-
-return(y) }
-
--   **Ejercicio 3**
-
-cocientes=rep(0,5) \# inicializo el vector de cocientes en cero
-
-y = 1111
-
-for (i in 2:6){
-
-y = y/i
-
-cocientes[i-1]=y
-
+for (i in 2:6) {
+  y <- y / i
+  cocientes[i - 1] <- y
 }
 
 print(cocientes)
 
--   **Ejercicio 4**
+```
 
-Definimos la función signo
+Ejercicio 4
+```{r}
+signo <- function(x, y) {
+  z <- x * y
+  res <- ifelse(z == 0, "Nulo", ifelse(z > 0, "Positivo", "Negativo"))
+  return(res)
+}
 
-signo = function(x,y) {
+signo(0, -2)
 
-z = x\*y
+```
 
-res = ifelse(z==0,"Nulo",ifelse(z\>0,"positivo","negativo"))
+Ejercicio 5
+```{r}
+sample(1:6, size = 1)
 
-return(res) }
+```
 
-signo(0,-2)
+Ejercicio 6
+```{r}
+sample(1:6, size = 4, replace = TRUE)
 
--   **Ejercicio 5**
+```
 
-sample(c(1,2,3,4,5,6), size=1)
+Ejercicio 7
+```{r}
+sample(c(1, 0), size = 1, prob = c(0.3, 0.7))
 
--   **Ejercicio 6**
+```
 
-sample(c(1,2,3,4,5,6), size=4, replace=TRUE)
+Ejercicio 8
+```{r}
+sample(c(1, 0), size = 8, replace = TRUE, prob = c(0.3, 0.7))
+```
 
--   **Ejercicio 7**
+Ejercicio 9
+```{r}
+muestra <- rnorm(n = 10, mean = 4, sd = 0.5)
+muestra
+```
 
-sample(c(0,1), size=1, prob=c(0.3,0.7))
+Ejercicio 10
+```{r}
+# Como la distribución es simétrica, usamos la función qnorm para obtener el valor correspondiente a (1 - 0.15/2) = 0.925
+P <- qnorm((1 - 0.15/2), mean = 0, sd = 2)
+P
+```
 
--   **Ejercicio 8**
+Ejercicio 11
+```{r}
+# Primero encontramos el valor cuya probabilidad acumulada es 60%
+x <- qnorm(0.60, mean = 0, sd = 1)
 
-sample(c(0,1), size=8, replace=TRUE, prob=c(0.3,0.7))
+# Evaluamos la función de densidad en ese punto
+densidad <- dnorm(x, mean = 0, sd = 1)
+densidad
 
--   **Ejercicio 9**
-
-*Cargo la base:*
-
-PACIENTE\<-1:30
-
-<br>
-
-EDAD \<- c(7, 7, 8, 7, 7, 10,7 ,7, 7 ,9, 9, 11, 7, 9, 9, 11, 12, 7, 11,
-6, 8, 8, 7, 10, 7, 8, 10, 7, 9, 10)
-
-<br>
-
-SEXO \<- c("M", "M", "M", "F", "M", "M" ,"M", "M", "M", "M", "M", "F",
-"M" ,"M" ,"F" ,"M", "M" ,"M" ,"M" ,"F" ,"F" ,"F", "F","F", "M" ,"M"
-,"F", "F" ,"F" ,"M")
-
-<br>
-
-PESO \<- c(24.4, 23.6, 47.0, 24.0, 23.9, 41.0, 32.9, 22.4, 28.7, 31.4,
-28.9, 51.2, 26.2, 58.5, 23.7, 25.5, 49.7, 39.6,42.5, 21.6, 38.0, 26.6,
-20.4, 23.7, 21.4, 45.7, 51.3, 28.0, 26.9, 43.9)
-
-<br>
-
-TALLA \<- c(1.2, 1.2, 1.4, 1.2, 1.2, 1.4, 1.3, 1.2, 1.3, 1.3, 1.3, 1.6,
-1.3, 1.5, 1.3, 1.3, 1.7, 1.3, 1.5, 1.2, 1.3, 1.2, 1.2,1.3, 1.2, 1.4,
-1.5, 1.3, 1.3, 1.5)
-
-<br>
-
-IMC \<- c(16.94444, 16.38889, 23.97959, 16.66667, 16.59722, 20.91837,
-19.46746, 15.55556, 16.98225, 18.57988,17.10059, 20.00000, 15.50296,
-26.00000, 14.02367, 15.08876, 17.19723, 23.43195, 18.88889,
-15.00000,22.48521, 18.47222, 14.16667, 14.02367, 14.86111, 23.31633,
-22.80000, 16.56805, 15.91716, 19.51111)
-
-<br>
-
-PIMC \<- c(7.97, 72.72, 97.08, 83.88, 45.85, 87.33, 96.57, 32.88, 80.77,
-92.72, 55.54, 77.77, 70.70, 98.69, 3.25,2.07, 38.08, 98.75, 80.60,
-39.97, 96.07, 71.06, 3.44, 2.02, 56.86, 98.99, 90.84, 57.50, 44.77,
-84.89)
-
-<br>
-
-CC \<- c(54, 52, 76, 63, 56, 78, 69, 52, 60, 69, 60, 75, 50, 88, 58, 73,
-75, 76, 72, 52, 76, 54, 52, 56, 56, 78, 76, 57, 57, 76)
-
-<br>
-
-CatPeso \<- c("N", "N", "OB", "N", "N", "SO", "OB", "N", "N", "SO", "N",
-"N", "N", "OB", "D", "D", "N", "OB","N" , "N", "OB", "N", "D", "D", "N",
-"OB", "SO", "N", "N", "N" )
-
-<br>
-
-IMCin \<- data.frame(PACIENTE,EDAD,SEXO,PESO,TALLA,IMC,PIMC,CC,CatPeso)
-
-<br>
-
-*combina las dos frecuencias en una salida*
-
-sal.sexo=rbind(table(IMCin$SEXO),100*table(IMCin$SEXO)/length(IMCin\$SEXO))
-
-<br>
-
-*asigna nombre a las filas de la salida*
-
-rownames(sal.sexo)=c("frec.abs","frec.porc")
-
-<br>
-
-*asigna nombre a las columnas de la salida*
-
-colnames(sal.sexo)=c("Femenino", "Masculino")
-
-<br>
-
-*muestra la salida*
-
-round(sal.sexo,2)
-
-<br>
-
--   **Ejercicio 10**
-
-<br>
-
-*devuelve la distribución conjunta de las variables categoría de peso y
-sexo*
-
-dist_conj \<- table(IMCin$CatPeso, IMCin$SEXO)
-
-<br>
-
-*calculo los totales por sexo*
-
-total \<- apply(dist_conj,2,sum)
-
-<br>
-
-*calcula la distribución porcentual por sexo*
-
-dist_porc \<-
-round(100\*cbind(dist_conj[,1]/total[1],dist_conj[,2]/total[2]),2)
-
-<br>
-
-*asigna nombre a las columnas de la distribución porcentual*
-
-colnames(dist_porc) \<-c ("F(%)","M(%)")
-
-<br>
-
-*combina ambas distribuciones*
-
-sal_conj \<- cbind(dist_conj,dist_porc)
-
-<br>
-
-*calcula el total de cada columna*
-
-Totales \<- apply(sal_conj,2,sum)
-
-<br>
-
-*agrega una fila con los totales*
-
-sal_fin \<- rbind(sal_conj,Totales)
-
-<br>
-
-*muestra la salida*
-
-sal_fin
-
-<br>
-
-<br>
-
-
-
-En el análisis previo de los datos es fundamental identificar y tratar dos problemas comunes:  
-1. **Valores Perdidos:** La existencia de datos nulos o ausentes que pueden afectar la calidad de los modelos.  
-2. **Outliers:** Observaciones que se desvían significativamente del comportamiento general de los datos y que pueden distorsionar análisis estadísticos.
-
-
-
+```
 
 # 1. Análisis Previo de los Datos
 
@@ -891,11 +744,9 @@ ggplot(datos_long, aes(x = variable1, y = variable2, color = metodo)) +
 
 ```
 
-# 3. Detección y Tratamiento de Outliers
 
-Los outliers pueden afectar significativamente los resultados de un análisis. A continuación se muestran distintos métodos para detectarlos y tratarlos.
 
-## 3.1. Detección Visual
+## 3.1. Detección Visual outliers
 
 ### 3.1.1. Boxplot
 
@@ -992,6 +843,29 @@ X = \{2.3, 2.9, 3.1, 3.8, 4.2, 4.8, 5.5\}
    - Si los datos son normales, los puntos estarán cerca de una línea recta.
 
 
+```{r}
+obtener_datos_qq_manual <- function(valores, a = 0.5) {
+  # Eliminar valores NA
+  valores <- na.omit(valores)
+  
+  # Ordenar los valores observados
+  observados <- sort(valores)
+  
+  # Tamaño de la muestra
+  n <- length(observados)
+  
+  # Calcular manualmente los puntos de probabilidad
+  i <- 1:n
+  probabilidades <- (i - a) / (n + 1 - 2 * a)
+  
+  # Cuantiles teóricos de una N(0, 1)
+  teoricos <- qnorm(probabilidades)
+  
+  # Devolver como data frame
+  data.frame(teorico = teoricos, observado = observados)
+}
+
+```
 
 ```{r}
 # Histograma
@@ -1103,8 +977,7 @@ grubbs_result
 
 ### **Test de Dixon: Detección de Valores Atípicos en Muestras Pequeñas**
 
-El **Test de Dixon** es una prueba estadística diseñada para identificar valores atípicos en conjuntos de datos pequeños o medianos. Es especialmente útil cuando el tamaño de la muestra es **menor o igual a 30**, ya que en muestras grandes otros métodos como el test de Grubbs o el análisis basado en cuartiles son más adecuados.
-
+El **Test de Dixon** es una prueba estadística diseñada para identificar valores atípicos en conjuntos de datos pequeños o medianos. Es especialmente útil cuando el tamaño de la muestra es **menor o igual a 30**.
 
 
 ## **Paso a Paso del Test de Dixon**
@@ -1511,6 +1384,7 @@ $$
 # Estandarización manual utilizando scale()
 datos$variable_std <- scale(datos$variable)
 summary(datos$variable_std)
+sd(datos$variable_std)
 ```
 
 ### Usando el paquete `caret`
@@ -1522,6 +1396,22 @@ head(datos_std_caret)
 ```
 
 La estandarización es muy útil para algoritmos basados en distancias, ya que asegura que las unidades de medida no influyan en el análisis.
+
+
+## Escalamiento Robusto
+El escalamiento robusto se utiliza cuando la presencia de outliers puede distorsionar las medidas tradicionales (media y desviación estándar). Este método utiliza la mediana y el rango intercuartílico (IQR) para centrar y escalar los datos, según la fórmula:
+
+$$
+x_{\text{robust}} = \frac{x - \text{Mediana}(x)}{IQR(x)}
+$$
+
+```{r}
+# Calcular el escalamiento robusto
+mediana <- median(datos$variable, na.rm = TRUE)
+iqr_val <- IQR(datos$variable, na.rm = TRUE)
+datos$variable_robust <- (datos$variable - mediana) / iqr_val
+summary(datos$variable_robust)
+```
 
 # 4. Población y Muestra
 
@@ -1579,93 +1469,6 @@ table(test$grupo)
 
 
 
-## 5.1. Escalamiento Robusto
-El escalamiento robusto se utiliza cuando la presencia de outliers puede distorsionar las medidas tradicionales (media y desviación estándar). Este método utiliza la mediana y el rango intercuartílico (IQR) para centrar y escalar los datos, según la fórmula:
-
-$$
-x_{\text{robust}} = \frac{x - \text{Mediana}(x)}{IQR(x)}
-$$
-
-```{r}
-# Calcular el escalamiento robusto
-mediana <- median(datos$variable, na.rm = TRUE)
-iqr_val <- IQR(datos$variable, na.rm = TRUE)
-datos$variable_robust <- (datos$variable - mediana) / iqr_val
-summary(datos$variable_robust)
-```
-
-## 5.2. Transformación Logarítmica y Cuantil
-
-### Transformación Logarítmica
-Esta transformación es útil para reducir la asimetría en distribuciones sesgadas. Es recomendable aplicar logaritmo cuando los datos son estrictamente positivos.
-
-```{r}
-# Aplicar transformación logarítmica (se suma 1 para evitar log(0))
-datos$variable_log <- log(datos$variable + 1)
-summary(datos$variable_log)
-```
-
-### Transformación Basada en Cuantiles
-Utilizando transformaciones como la de Yeo-Johnson o Box-Cox se pueden estabilizar las varianzas y aproximar la normalidad. Con el paquete `caret` se puede aplicar fácilmente:
-
-
-### ** Box-Cox Transformation**
-- Se aplica únicamente a datos **positivos** (mayores que 0).
-- Tiene la forma matemática:
-
-  \[
-  X' =
-  \begin{cases} 
-  \frac{X^\lambda - 1}{\lambda}, & \text{si } \lambda \neq 0 \\
-  \log(X), & \text{si } \lambda = 0
-  \end{cases}
-  \]
-
-  Donde \(X'\) es el dato transformado y \(\lambda\) es un parámetro que se elige de manera óptima para normalizar los datos.
-
-### ** Yeo-Johnson Transformation**
-- Puede aplicarse a **valores negativos, positivos y ceros**.
-- Tiene una fórmula distinta dependiendo del signo de \(X\):
-
-  \[
-  X' =
-  \begin{cases} 
-  \frac{(X + 1)^\lambda - 1}{\lambda}, & \text{si } X \geq 0, \lambda \neq 0 \\
-  \log(X + 1), & \text{si } X \geq 0, \lambda = 0 \\
-  \frac{-(|X| + 1)^{(2 - \lambda)} + 1}{2 - \lambda}, & \text{si } X < 0, \lambda \neq 2 \\
-  -\log(|X| + 1), & \text{si } X < 0, \lambda = 2
-  \end{cases}
-  \]
-
-
-
-```{r}
-# Transformación usando el método Yeo-Johnson (aplicable a datos con valores negativos o cero)
-preProc_quantile <- preProcess(datos, method = c("YeoJohnson"))
-datos_quantile <- predict(preProc_quantile, datos)
-head(datos_quantile)
-```
-
-## 5.3. Consideraciones Estadísticas en el Preprocesamiento
-
-- **Normalización (Min-Max Scaling):** Preserva la forma de la distribución, pero es muy sensible a valores extremos.
-- **Estandarización (Z-score Scaling):** Asume una distribución aproximadamente normal y puede ser influenciada por outliers, por lo que a veces es preferible el escalamiento robusto.
-- **Transformaciones Logarítmicas o Cuantiles:** Ayudan a manejar datos sesgados, mejorando la estabilidad de la varianza y facilitando la modelación.
-
-Visualizar la distribución antes y después de las transformaciones es fundamental para evaluar el impacto del preprocesamiento.
-
-```{r}
-library(ggplot2)
-# Comparar la distribución original y la transformada
-ggplot(datos, aes(x = variable)) +
-  geom_histogram(bins = 30, fill = "skyblue", color = "white") +
-  labs(title = "Distribucion Original de 'variable'")
-
-ggplot(datos, aes(x = variable_log)) +
-  geom_histogram(bins = 30, fill = "salmon", color = "white") +
-  labs(title = "Distribucion Transformada Logaritmicamente")
-```
-
 # 6. Variantes y Estrategias en Muestreo
 
 ## 6.1. Muestreo Sistemático
@@ -1674,9 +1477,10 @@ El muestreo sistemático consiste en seleccionar cada k-ésima observación de l
 
 ```{r}
 # Calcular el intervalo k y seleccionar cada k-ésimo elemento
-k <- floor(nrow(datos) / 20)
+k <- 4
 muestra_sistematico <- datos[seq(1, nrow(datos), by = k), ]
-head(muestra_sistematico)
+nrow(muestra_sistematico)
+nrow(datos)
 ```
 
 ## 6.2. Muestreo por Conglomerados
@@ -1690,7 +1494,7 @@ datos$grupo <- sample(c("A", "B", "C", "D"), size = nrow(datos), replace = TRUE)
 
 # Seleccionar aleatoriamente dos conglomerados
 conglomerados_seleccionados <- sample(unique(datos$grupo), size = 2)
-muestra_conglomerados <- subset(datos, grupo %in% conglomerados_seleccionados)
+muestra_conglomerados <- datos[datos$grupo %in% conglomerados_seleccionados, ]
 table(muestra_conglomerados$grupo)
 ```
 
@@ -1777,35 +1581,6 @@ quantile(param_results, probs = c(0.025, 0.975))
 
 En este caso, generamos `R=1000` muestras sintéticas de `mpg` asumiendo una distribución normal. Luego, obtenemos el intervalo de confianza basado en los percentiles de la distribución generada.
 
-## 6.4. Validación de la Representatividad de la Muestra
-
-Comparamps las estadísticas descriptivas de la población y la muestra utilizada para asegurarnos de que la muestra sea representativa.
-
-```{r}
-library(dplyr)
-
-# Estadísticas en la población
-pop_stats <- datos %>%
-  summarise(
-    media = mean(mpg, na.rm = TRUE),
-    mediana = median(mpg, na.rm = TRUE),
-    sd = sd(mpg, na.rm = TRUE)
-  )
-print(pop_stats)
-
-# Extraemos una muestra aleatoria simple
-tamano_muestra <- 30
-set.seed(123)
-muestra_simple <- sample(datos$mpg, tamano_muestra, replace = FALSE)
-
-# Estadísticas en la muestra aleatoria simple
-sample_stats <- data.frame(
-  media = mean(muestra_simple, na.rm = TRUE),
-  mediana = median(muestra_simple, na.rm = TRUE),
-  sd = sd(muestra_simple, na.rm = TRUE)
-)
-print(sample_stats)
-```
 
 
 
@@ -1813,7 +1588,8 @@ print(sample_stats)
 
 Una parte esencial del análisis predictivo es dividir el conjunto de datos en dos (o más) subconjuntos:  
 - **Entrenamiento**: Donde se ajusta el modelo.  
-- **Prueba**: Donde se evalúa el desempeño del modelo en datos no vistos.
+- **Validacion**: Donde se evalúa el desempeño del modelo en datos no vistos.
+- **Test**: Conjunto de datos sobre el cual NO se toman decisiones y sirve para al finalizar reportar metricas
 
 Esta división ayuda a evitar el sobreajuste y proporciona una estimación realista de la capacidad predictiva.
 
@@ -1830,7 +1606,6 @@ set.seed(123)
 library(caret)
 datos$grupo <- sample(c("A", "B", "C", "D"), size = nrow(datos), replace = TRUE)
 
-# Se utiliza createDataPartition para obtener índices de entrenamiento (70%)
 trainIndex <- createDataPartition(datos$grupo, p = 0.7, list = FALSE)
 train <- datos[trainIndex, ]
 test <- datos[-trainIndex, ]
@@ -1850,16 +1625,16 @@ Se puede entrenar un modelo, por ejemplo, una regresión lineal, y evaluarlo en 
 modelo_lm <- lm(mpg ~ ., data = train)
 
 # Predicción en el conjunto de prueba
-predicciones <- predict(modelo_lm, newdata = test)
+prediccionesTest <- predict(modelo_lm, newdata = test)
 prediccionesTrain <- predict(modelo_lm, newdata = train)
 
 # Comparar las predicciones con los valores reales
-resultados <- data.frame(Real = test$mpg, Predicho = predicciones)
+resultados <- data.frame(Real = test$mpg, Predicho = prediccionesTest)
 resultadosTrain <- data.frame(Real = train$mpg, Predicho = prediccionesTrain)
 
 head(resultados)
 
-# Calcular error cuadrático medio (MSE)
+# Calcular error cuadrático medio (MSE) en test
 mse <- mean((resultados$Real - resultados$Predicho)^2)
 mseTrain <- mean((resultadosTrain$Real - resultadosTrain$Predicho)^2)
 
@@ -1884,6 +1659,9 @@ control_cv <- trainControl(method = "cv", number = 10)
 modelo_cv <- train(mpg ~ ., data = train, method = "lm", trControl = control_cv)
 print(modelo_cv)
 ```
+```{r}
+modelo_cv
+```
 
 ## 8.2. Leave-One-Out Cross Validation (LOOCV)
 
@@ -1904,17 +1682,15 @@ A continuación se presentan nuevos ejercicios utilizando datasets reales de R. 
 
 ## Ejercicio 1: División y Evaluación de un Modelo con *mtcars*
 
-**Enunciado:**  
 Utiliza el dataset `mtcars` para dividirlo en un 70% de entrenamiento y un 30% de prueba. Ajusta un modelo de regresión lineal para predecir el consumo de combustible (`mpg`) en función de la potencia (`hp`) y el peso (`wt`). Evalúa el modelo en el conjunto de prueba calculando el error cuadrático medio (MSE).
 
 ## Ejercicio 2: Validación Cruzada k-Fold en un Modelo de Regresión
 
-**Enunciado:**  
 Con el conjunto de entrenamiento obtenido en el Ejercicio 1, realiza una validación cruzada de 10 pliegues para evaluar el rendimiento de un modelo de regresión lineal que prediga `mpg` a partir de `hp` y `wt`. Reporta el RMSE promedio obtenido durante la validación.
 
 ## Ejercicio 3: Comparación de Técnicas de Preprocesamiento con *airquality*
 
-**Enunciado:**  
+
 Utiliza el dataset `airquality` y enfócate en la variable `Ozone`.  
 1. Elimina los valores faltantes de dicha variable.  
 2. Aplica dos técnicas de preprocesamiento:  
@@ -1927,22 +1703,17 @@ Utiliza el dataset `airquality` y enfócate en la variable `Ozone`.
 ## Resolución Ejercicio 1
 
 ```{r}
-# Utilizando el dataset mtcars
 data(mtcars)
 set.seed(123)
 
-# División del dataset en 70% entrenamiento y 30% prueba
 indices <- sample(1:nrow(mtcars), size = 0.7 * nrow(mtcars))
 train_ex1 <- mtcars[indices, ]
 test_ex1  <- mtcars[-indices, ]
 
-# Ajustar el modelo de regresión lineal: mpg ~ hp + wt
 modelo_ex1 <- lm(mpg ~ hp + wt, data = train_ex1)
 
-# Realizar predicciones en el conjunto de prueba
 predicciones_ex1 <- predict(modelo_ex1, newdata = test_ex1)
 
-# Calcular el error cuadrático medio (MSE)
 mse_ex1 <- mean((test_ex1$mpg - predicciones_ex1)^2)
 print(paste("MSE del modelo:", round(mse_ex1, 2)))
 ```
@@ -1953,15 +1724,11 @@ print(paste("MSE del modelo:", round(mse_ex1, 2)))
 library(caret)
 set.seed(123)
 
-# Definir control de validación cruzada de 10 pliegues
 control_ex2 <- trainControl(method = "cv", number = 10)
 
-# Entrenar el modelo con validación cruzada utilizando el conjunto de entrenamiento
 modelo_ex2 <- train(mpg ~ hp + wt, data = train_ex1, method = "lm", trControl = control_ex2)
 
-# Mostrar los resultados de la validación cruzada
 print(modelo_ex2)
-# El RMSE promedio obtenido se encuentra en modelo_ex2$results$RMSE
 ```
 
 ## Resolución Ejercicio 3
@@ -1970,34 +1737,26 @@ print(modelo_ex2)
 library(ggplot2)
 data(airquality)
 
-# Seleccionar la variable Ozone y eliminar valores NA
 datos_ex3 <- na.omit(airquality[, "Ozone", drop = FALSE])
 
-# Aplicar Normalización (Min-Max Scaling)
 datos_ex3$Ozone_norm <- (datos_ex3$Ozone - min(datos_ex3$Ozone)) / 
                         (max(datos_ex3$Ozone) - min(datos_ex3$Ozone))
 
-# Aplicar Estandarización (Z-score Scaling)
 datos_ex3$Ozone_std <- scale(datos_ex3$Ozone)
 
-# Visualizar las distribuciones
 
-# Histograma de la distribución original
 p1 <- ggplot(datos_ex3, aes(x = Ozone)) +
   geom_histogram(bins = 30, fill = "skyblue", color = "white") +
   labs(title = "Distribucion Original de Ozone")
 
-# Histograma de la distribución normalizada
 p2 <- ggplot(datos_ex3, aes(x = Ozone_norm)) +
   geom_histogram(bins = 30, fill = "lightgreen", color = "white") +
   labs(title = "Distribucion Normalizada (Min-Max)")
 
-# Histograma de la distribución estandarizada
 p3 <- ggplot(datos_ex3, aes(x = Ozone_std)) +
   geom_histogram(bins = 30, fill = "salmon", color = "white") +
   labs(title = "Distribucion Estandarizada (Z-score)")
 
-# Mostrar las gráficas
 print(p1)
 print(p2)
 print(p3)
