@@ -13,7 +13,7 @@ En R, las distribuciones de probabilidad tienen cuatro tipos de funciones:
 1. **Funciones de densidad** (`d...`): Devuelven la densidad de probabilidad en un punto.
 2. **Funciones de distribución acumulada** (`p...`): Devuelven la probabilidad acumulada hasta un punto.
 3. **Funciones cuantil o inversas** (`q...`): Devuelven el valor de la variable aleatoria correspondiente a un cuantil dado.
-4. **Funciones generadoras de números aleatorios** (`r...`): Se usan para generar números aleatorios (ya vistas en otra sección).
+4. **Funciones generadoras de números aleatorios** (`r...`): Se usan para generar números aleatorios.
 
 ### **Distribución Bernoulli**
 

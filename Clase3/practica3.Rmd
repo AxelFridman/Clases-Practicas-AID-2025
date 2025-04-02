@@ -1,6 +1,7 @@
 ---
 title: "Practica 3 AID 2025"
 output: html_document
+runtime: shiny
 ---
 
 
@@ -16,13 +17,13 @@ Un **test de hipótesis** es un procedimiento estadístico para tomar decisiones
 ## 1.2. Errores de Tipo I y Tipo II
 
 - **Error Tipo I (\(\alpha\))**  
-  Se comete cuando **rechazamos H₀** siendo ésta **verdadera**. A menudo se denomina “falso positivo”.  
+  Se comete cuando **rechazamos H₀** siendo ésta **verdadera**.Se llama “falso positivo”.  
   \[
     \alpha = P(\text{rechazar H₀} \mid H₀ \text{ es verdadera}).
   \]
 
 - **Error Tipo II (\(\beta\))**  
-  Ocurre cuando **no se rechaza H₀** siendo ésta **falsa**. Se le denomina “falso negativo”.  
+  Ocurre cuando **no se rechaza H₀** siendo ésta **falsa**. Se le llama “falso negativo”.  
   \[
     \beta = P(\text{no rechazar H₀} \mid H₀ \text{ es falsa}).
   \]
@@ -41,15 +42,55 @@ Un **test de hipótesis** es un procedimiento estadístico para tomar decisiones
 
 # 2. Relación entre \(\alpha\), \(\beta\) y Tamaño de la Muestra
 
-1. **Para un nivel de significación \(\alpha\) dado:**  
-   - Al **aumentar** el **tamaño muestral** (\(n\)), **disminuye** \(\beta\).  
-   - Esto implica que se **incrementa** la **potencia** (\(1 - \beta\)).  
+## Relación entre \(\alpha\), \(\beta\), tamaño muestral y tamaño del efecto mínimo relevante
 
-2. **Para un tamaño de muestra fijo:**  
-   - Al **disminuir** \(\alpha\), **aumenta** \(\beta\).  
-   - Al **aumentar** \(\alpha\), **disminuye** \(\beta\).  
+Al diseñar un test estadístico, es importante entender cómo se relacionan cuatro elementos clave:
 
-Dicho de otra manera, si reducimos mucho \(\alpha\) para ser más conservadores (menor probabilidad de falso positivo), a la vez aumentamos la probabilidad de no detectar un efecto real (falso negativo).
+- **\(\alpha\)**: Nivel de significancia (probabilidad de error tipo I)
+- **\(\beta\)**: Probabilidad de error tipo II
+- **Potencia**: \(1 - \beta\), es decir, la probabilidad de detectar un efecto real
+- **Tamaño del efecto mínimo relevante** (\(\Delta\)): La diferencia entre grupos o condiciones que consideramos importante desde el punto de vista práctico
+
+---
+
+### 1. ¿Qué es el tamaño del efecto mínimo relevante?
+
+Es la **magnitud mínima del efecto** que nos interesa detectar. No es cualquier diferencia, sino una que tenga sentido práctico, clínico o industrial.
+
+- En un estudio médico: una reducción de al menos 5 mmHg en la presión
+- En educación: una mejora de 1 punto en un examen
+- En producción: una diferencia de 0.5 mm en una pieza mecánica
+
+Este valor lo **define el investigador**, y es necesario para calcular el tamaño de muestra o la potencia.
+
+---
+
+### 2. Relación entre los parámetros
+
+#### Para un nivel de significación \(\alpha\) dado:
+- Al **aumentar** el tamaño muestral \(n\), **disminuye** \(\beta\)
+- Esto significa que **aumenta** la **potencia** (\(1 - \beta\))
+
+#### Para un tamaño de muestra fijo:
+- Al **disminuir** \(\alpha\), **aumenta** \(\beta\)
+- Al **aumentar** \(\alpha\), **disminuye** \(\beta\)
+
+#### Para \(\alpha\) y \(n\) fijos:
+- Cuanto más grande sea el **tamaño del efecto mínimo relevante** (\(\Delta\)), **más fácil es detectarlo**
+- A medida que el efecto que queremos detectar se **reduce**, se necesita un **n mayor** para mantener la misma potencia
+
+---
+
+### 3. Diseño de un test: ¿Qué se fija y qué se calcula?
+
+| Parámetro               | ¿Se puede fijar? | ¿Normalmente se fija? |
+|------------------------|------------------|------------------------|
+| Nivel de significancia (\(\alpha\)) | ✅ | ✅ |
+| Potencia deseada (\(1 - \beta\))     | ✅ | ✅ |
+| Tamaño del efecto relevante (\(\Delta\)) | ✅ | ✅ |
+| Tamaño de muestra (\(n\))           | ✅ | ✅ (si estás diseñando el experimento) |
+
+
 
 
 # 3. Curvas de \(\beta\) (Operación Característica) y \(1-\beta\) (Potencia)
@@ -106,7 +147,7 @@ calc_beta <- function(n, alpha, efecto = 1, sigma = 1) {
 # Distintos valores de alpha
 alpha_values <- c(0.01, 0.05, 0.10)
 # Rango de tamaños de muestra
-n_values <- seq(5, 100, by = 5)
+n_values <- seq(5, 100, by = 1)
 
 # Construimos un data frame con todas las combinaciones de n y alpha
 df_beta <- expand.grid(
@@ -137,6 +178,7 @@ ggplot(df_beta, aes(x = n, y = Beta, color = factor(alpha))) +
 **Interpretación del gráfico de Beta (\(\beta\)):**  
 - Para una media real \(\mu = 1\) (efecto de 1 unidad), se observa que a mayor \(n\), menor \(\beta\).  
 - A su vez, para un mismo \(n\), valores más grandes de \(\alpha\) implican \(\beta\) más baja.  
+
 
 
 ## 4.2. Curva de Potencia (\(1 - \beta\)) vs. Tamaño de la Muestra
@@ -232,21 +274,20 @@ Aunque el foco principal es mostrar la relación entre \(\alpha\), \(\beta\) y \
 1. **p‑valor pequeño (ej. < 0.05):** Evidencia para rechazar H₀.  
 2. **p‑valor grande:** No hay evidencia suficiente para rechazar H₀.
 
-### 5.1. Simulación y Cálculo del p‑valor
+### 5.1.1 Simulación y Cálculo del p‑valor varianza conocida
 
 ```{r}
 set.seed(100)
-
+sd_poblacional <- 2 # conocido
 # Simulamos datos donde la media real es 10.5, sd=2, n=40
-muestra <- rnorm(40, mean = 10.5, sd = 2)
+muestra <- rnorm(40, mean = 10.5, sd = sd_poblacional)
 
 media_muestra <- mean(muestra)
-sd_muestra <- sd(muestra)
 n <- length(muestra)
 media_hipotetica <- 10
 
 # Estadístico z para H0: mu = 10 vs H1: mu != 10
-error_estandar <- sd_muestra / sqrt(n)
+error_estandar <- sd_poblacional / sqrt(n)
 z_stat <- (media_muestra - media_hipotetica) / error_estandar
 p_valor <- 2 * (1 - pnorm(abs(z_stat)))  # prueba a dos colas
 
@@ -255,6 +296,30 @@ cat("Estadistico z:", round(z_stat, 2), "\n")
 cat("p-valor:", round(p_valor, 4), "\n")
 ```
 
+### 5.1.2 Simulación y Cálculo del p‑valor para varianza desconocida 
+
+```{r}
+set.seed(100)
+sd_poblacional <- 2 # conocido
+# Simulamos datos donde la media real es 10.5, sd=2, n=40
+muestra <- rnorm(40, mean = 10.5, sd = sd_poblacional)
+
+media_muestra <- mean(muestra)
+n <- length(muestra)
+media_hipotetica <- 10
+
+sd_muestral <- sd(muestra)
+grados_libertad <- n-1
+  
+# Estadístico t para H0: mu = 10 vs H1: mu != 10
+error_estandar <- sd_muestral / sqrt(n)
+t_stat <- (media_muestra - media_hipotetica) / error_estandar
+p_valor <- 2 * (1 - pt(abs(t_stat), df=grados_libertad))  # prueba a dos colas
+
+cat("Media de la muestra:", round(media_muestra, 2), "\n")
+cat("Estadistico t:", round(t_stat, 2), "\n")
+cat("p-valor:", round(p_valor, 4), "\n")
+```
 **Interpretación:**  
 - Si \(\text{p-valor} < \alpha\) (por ejemplo, 0.05), se rechaza H₀.  
 - Si \(\text{p-valor} \geq \alpha\), no se puede rechazar H₀.
@@ -300,15 +365,21 @@ Generamos una muestra de datos con una media real de 10.5 y evaluamos la hipóte
 
 - **H₀:** µ = 10  
 - **H₁:** µ ≠ 10
-
-Calcularemos el p‑valor de forma manual usando la función `pnorm`.
+Varianza desconocida
+Calcularemos el p‑valor de forma manual usando la función `pt`.
 
 ```{r}
 set.seed(123)
-# Simular una muestra de 30 datos de una distribución normal con media 10.5 y desviación 2
-muestra <- rnorm(30, mean = 10.5, sd = 2)
+# Simular una muestra de 10 datos de una distribución normal con media 10.5 y desviación 2
+muestra <- rnorm(10, mean = 10.5, sd = 2)
+cat(" muestra:", muestra, "\n")
 media_muestra <- mean(muestra)
-sd_muestra <- sd(muestra)
+cat("Media muestra:", media_muestra, "\n")
+
+sd_muestra <- sqrt(sum((muestra-media_muestra)**2)/(n-1))
+cat("sd muestra:", sd_muestra, "\n")
+
+# o tambien sino sd_muestra <- sd(muestra)
 n <- length(muestra)
 
 # Valor hipotético
@@ -317,63 +388,232 @@ media_hipotetica <- 10
 # Calcular el error estándar
 error_est <- sd_muestra / sqrt(n)
 
-# Calcular el estadístico z (usando la aproximación normal)
-z <- (media_muestra - media_hipotetica) / error_est
+# Calcular el estadístico t (usando la aproximación normal)
+t <- (media_muestra - media_hipotetica) / error_est
 
 # p-valor para una prueba de dos colas
-p_valor_manual <- 2 * (1 - pnorm(abs(z)))
-cat("Media de la muestra:", round(media_muestra, 2), "\n")
-cat("Estadistico z:", round(z, 2), "\n")
-cat("p-valor:", round(p_valor_manual, 4), "\n")
+p_valor_manual <- 2 * (1 - pt(abs(t), df=n-1))
+cat("Estadistico t:", t, "\n")
+cat("p-valor:", p_valor_manual, "\n")
 ```
 
-*Interpretación:*  
-Si el p‑valor es menor que 0.05, se rechaza H₀, lo que sugeriría que la media es significativamente diferente de 10.
+
+```{r}
+t_test_resultado <- t.test(muestra, mu = 10, type="one.sample", alternative = "two.sided")
+t_test_resultado
+```
+
+
+```{r}
+set.seed(1804)
+# ----------------------
+# Datos simulados
+# ----------------------
+n1 <- 9
+n2 <- 11
+mu_a_real <- 15
+mu_b_real <- 17
+sd_a_real <- 2
+sd_b_real <- 3
+
+grupo_A <- rnorm(n1, mu_a_real, sd_a_real)
+grupo_B <- rnorm(n2, mu_b_real, sd_b_real)
+
+cat("=== Grupo A ===\n")
+print(grupo_A)
+cat("\n=== Grupo B ===\n")
+print(grupo_B)
+cat("\n")
+
+# ----------------------
+# Paso 1: Diferencia observada entre las medias
+# ----------------------
+media_A <- mean(grupo_A)
+media_B <- mean(grupo_B)
+diff_obs <- media_B - media_A
+cat("Diferencia observada (B - A):", round(diff_obs, 2), "\n\n")
+
+# ======================
+# Método 1: Prueba t asumiendo varianzas iguales (Pooled Variance)
+# ======================
+cat("=== Prueba t con varianzas iguales (Pooled Variance) ===\n")
+
+# a) Calcular varianzas muestrales de cada grupo
+var_A <- var(grupo_A)
+var_B <- var(grupo_B)
+cat("Varianza de Grupo A:", round(var_A, 2), "\n")
+cat("Varianza de Grupo B:", round(var_B, 2), "\n\n")
+
+# b) Calcular la varianza combinada (pooled)
+var_pooled <- (((n1 - 1) * var_A) + ((n2 - 1) * var_B)) / (n1 + n2 - 2)
+cat("Varianza combinada (pooled):", round(var_pooled, 2), "\n\n")
+
+# c) Calcular el error estándar de la diferencia
+# Fórmula: SE = sqrt(s_p^2*(1/n1 + 1/n2))
+SE_pooled <- sqrt(var_pooled * (1/n1 + 1/n2))
+cat("Error estándar (pooled):", round(SE_pooled, 2), "\n\n")
+
+# d) Calcular el estadístico t
+# Fórmula: t = (mean_B - mean_A) / SE
+t_stat_pooled <- diff_obs / SE_pooled
+cat("Estadístico t (pooled):", round(t_stat_pooled, 2), "\n")
+
+# e) Grados de libertad
+df_pooled <- n1 + n2 - 2
+cat("Grados de libertad (pooled):", df_pooled, "\n\n")
+
+# f) Calcular los p-valores para cada alternativa:
+#   - Bilateral: p = 2*(1 - pt(|t|, df))
+p_valor_pooled_two <- 2 * (1 - pt(abs(t_stat_pooled), df = df_pooled))
+#   - Unilateral (H1: mu_B > mu_A): p = 1 - pt(t, df)
+p_valor_pooled_right <- 1 - pt(t_stat_pooled, df = df_pooled)
+#   - Unilateral (H1: mu_B < mu_A): p = pt(t, df)
+p_valor_pooled_left <- pt(t_stat_pooled, df = df_pooled)
+
+cat("p-valor bilateral (pooled):", round(p_valor_pooled_two, 4), "\n")
+cat("p-valor unilateral (B > A) (pooled):", round(p_valor_pooled_right, 4), "\n")
+cat("p-valor unilateral (B < A) (pooled):", round(p_valor_pooled_left, 4), "\n\n")
+
+
+# ======================
+# Método 2: Prueba t sin asumir igualdad de varianzas (Welch's t-test)
+# ======================
+cat("=== Prueba t con varianzas diferentes (Welch's t-test) ===\n")
+
+# a) Calcular el error estándar sin asumir igualdad:
+# Fórmula: SE = sqrt( var_A/n1 + var_B/n2 )
+SE_welch <- sqrt(var_A/n1 + var_B/n2)
+cat("Error estándar (Welch):", round(SE_welch, 2), "\n\n")
+
+# b) Calcular el estadístico t para Welch
+t_stat_welch <- diff_obs / SE_welch
+cat("Estadístico t (Welch):", round(t_stat_welch, 2), "\n\n")
+
+# c) Calcular los grados de libertad con la aproximación de Welch-Satterthwaite:
+# Fórmula: df = ( (var_A/n1 + var_B/n2)^2 ) / [ ((var_A/n1)^2/(n1-1)) + ((var_B/n2)^2/(n2-1)) ]
+df_welch <- ( (var_A/n1 + var_B/n2)^2 ) / ( ((var_A/n1)^2)/(n1 - 1) + ((var_B/n2)^2)/(n2 - 1) )
+cat("Grados de libertad (Welch):", round(df_welch, 2), "\n\n")
+
+# d) Calcular los p-valores para cada alternativa:
+p_valor_welch_two <- 2 * (1 - pt(abs(t_stat_welch), df = df_welch))
+p_valor_welch_right <- 1 - pt(t_stat_welch, df = df_welch)
+p_valor_welch_left <- pt(t_stat_welch, df = df_welch)
+
+cat("p-valor bilateral (Welch):", round(p_valor_welch_two, 4), "\n")
+cat("p-valor unilateral (B > A) (Welch):", round(p_valor_welch_right, 4), "\n")
+cat("p-valor unilateral (B < A) (Welch):", round(p_valor_welch_left, 4), "\n")
+
+```
+
 
 ### 3.2. Ejemplo 2: Test de Hipótesis en un Experimento de Lanzamiento de Moneda
 
-Supongamos que lanzamos una moneda 100 veces y queremos comprobar si es justa (probabilidad de cara = 0.5).  
-- **H₀:** La moneda es justa (p = 0.5)  
-- **H₁:** La moneda no es justa (p ≠ 0.5)
+Supongamos que lanzamos una moneda pesada varias veces y queremos comprobar si es tan pesada como nos reporta su fabricante (probabilidad de cara teorica = 0.7).
 
-Simulamos los lanzamientos y calculamos el p‑valor usando la distribución binomial.
+- **H₀:** La moneda esta bien cargada (p = 0.7)  
+- **H₁:** La moneda no esta bien cargada (p ≠ 0.7)
+
+La prueba que realizamos es una **prueba binomial de dos colas**, porque no solo nos interesa si hay demasiadas caras, sino también si hay demasiado pocas.
+
+---
+
+El p‑valor se calcula como el área más extrema (o más rara) que la observación, **en ambos extremos** de la distribución:
+
 
 ```{r}
-set.seed(456)
-# Simular 100 lanzamientos de moneda (0 = cruz, 1 = cara)
-lanzamientos <- rbinom(100, size = 1, prob = 0.5)
-caras <- sum(lanzamientos)
-
-# Supongamos que se obtuvieron 'caras' caras. 
-# Calcular el p-valor para una prueba de dos colas usando la función pbinom.
 p_valor_binom <- 2 * min(
-  pbinom(caras, size = 100, prob = 0.5),
-  1 - pbinom(caras - 1, size = 100, prob = 0.5)
+  pbinom(65, size = 100, prob = 0.7),
+  1 - pbinom(65 - 1, size = 100, prob = 0.7)
 )
-cat("Número de caras:", caras, "\n")
-cat("p-valor (binomial):", round(p_valor_binom, 4), "\n")
+p_valor_binom
 ```
 
-*Visualización:*  
-Podemos graficar la distribución binomial y señalar el área correspondiente al p‑valor.
+Esto se hace porque:
+- `pbinom(caras)` da la probabilidad acumulada hasta ese número (casos "menores").
+- `1 - pbinom(caras - 1)` da la probabilidad acumulada desde ese número hacia arriba (casos "mayores").
+
+Tomamos el **mínimo** de los dos porque en una prueba bilateral nos interesa duplicar **la cola más extrema**, no ambas sumadas (eso sobredimensionaría el p‑valor).
+
+Intervalos de confianza
 
 ```{r}
-# Crear secuencia de posibles resultados
-x_vals <- 0:100
-densidad_binom <- dbinom(x_vals, size = 100, prob = 0.5)
-df_binom <- data.frame(x = x_vals, densidad = densidad_binom)
+exitos <- 65
+fracasos <- 100 - exitos
+alpha <- 0.05
+cat(qbeta(alpha/2, exitos, fracasos + 1))  # Límite inferior
+cat(qbeta(1- alpha/2, exitos + 1, fracasos))  # Límite superior
 
-# Valor observado (número de caras)
-valor_obs_binom <- caras
+```
+Aproximacion Normal
+```{r}
+p_hat <- exitos/100
+rango <- qnorm(alpha/2)*sqrt(p_hat * (1-p_hat) / 100)
+cat(p_hat + rango)
+cat(p_hat - rango)
 
-ggplot(df_binom, aes(x = x, y = densidad)) +
-  geom_bar(stat = "identity", fill = "lightblue", color = "black") +
-  geom_vline(xintercept = valor_obs_binom, color = "red", size = 1) +
-  labs(title = "Distribución Binomial (n = 100, p = 0.5)",
-       subtitle = paste("Número de caras =", valor_obs_binom),
-       x = "Número de caras",
-       y = "Probabilidad") +
-  theme_minimal()
+```
+
+
+```{r}
+library(shiny)
+library(ggplot2)
+
+ui <- fluidPage(
+  titlePanel("Test de Hipótesis con Lanzamientos de Moneda"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("n", "Número de lanzamientos:", min = 10, max = 500, value = 100, step = 10),
+      sliderInput("p_real", "Probabilidad real de cara:", min = 0.01, max = 0.99, value = 0.5, step = 0.01)
+    ),
+    mainPanel(
+      verbatimTextOutput("resultados"),
+      plotOutput("grafico")
+    )
+  )
+)
+
+server <- function(input, output) {
+  output$resultados <- renderPrint({
+    set.seed(456)
+    # Usamos la probabilidad real para generar los datos
+    lanzamientos <- rbinom(input$n, size = 1, prob = input$p_real)
+    caras <- sum(lanzamientos)
+
+    # Hacemos el test como si la moneda fuera calibrada
+    p_valor <- 2 * min(
+      pbinom(caras, size = input$n, prob = 0.7),
+      1 - pbinom(caras - 1, size = input$n, prob = 0.7)
+    )
+
+    cat("Número de lanzamientos:", input$n, "\n")
+    cat("Probabilidad real de cara:", input$p_real, "\n")
+    cat("Número de caras observadas:", caras, "\n")
+    cat("p-valor (hipótesis: p = 0.5):", round(p_valor, 4), "\n")
+  })
+
+  output$grafico <- renderPlot({
+    set.seed(456)
+    lanzamientos <- rbinom(input$n, size = 1, prob = input$p_real)
+    caras <- sum(lanzamientos)
+
+    x_vals <- 0:input$n
+    densidad <- dbinom(x_vals, size = input$n, prob = 0.7)
+    df <- data.frame(x = x_vals, densidad = densidad)
+
+    ggplot(df, aes(x = x, y = densidad)) +
+      geom_bar(stat = "identity", fill = "lightblue", color = "black") +
+      geom_vline(xintercept = caras, color = "red", size = 1) +
+      labs(title = paste("Distribución Binomial bajo H₀ (n =", input$n, ", p = 0.7)"),
+           subtitle = paste("Datos generados con p_real =", input$p_real,
+                            "→ caras observadas =", caras),
+           x = "Número de caras",
+           y = "Probabilidad") +
+      theme_minimal()
+  })
+}
+
+shinyApp(ui, server)
+
 ```
 
 
@@ -395,22 +635,22 @@ ggplot(df_binom, aes(x = x, y = densidad)) +
 
 ### Ejercicio 3: Experimento de Lanzamiento de Moneda  
 -   
-  Simulen 200 lanzamientos de una moneda (con probabilidad 0.5) y supongan que obtuvieron un número inusual de caras (por ejemplo, 130).  
+  Simulen 200 lanzamientos de una moneda (con probabilidad 0.5) y supongan que obtuvieron un número inusual de caras (por ejemplo, 130 sobre 200).  
   Calcular el p‑valor usando la distribución binomial y explique si se rechazaría la hipótesis de moneda justa (usando α = 0.05).  
 - **Pista:** Use `rbinom()`, `pbinom()` y visualice la distribución.
 
-### Ejercicio 4: Comparación de Dos Grupos Simulados  
--   
-  Simulen dos grupos independientes de 50 observaciones cada uno:  
-  - Grupo A: datos generados con media 20 y desviación 4.  
-  - Grupo B: datos generados con media 22 y desviación 4.  
-  Planteen la hipótesis de que no existe diferencia en las medias entre los grupos (H₀: µₐ = µ_b).  
-  Realicen lo siguiente:  
-  1. Calcular la diferencia de medias observada.  
-  2. Utilizar un método de re-muestreo (simulación) para generar la distribución de la diferencia de medias bajo H₀ (por ejemplo, mezclando ambos grupos y extrayendo muestras aleatorias).  
-  3. Calcular el p‑valor como la proporción de simulaciones en las que la diferencia absoluta es mayor o igual a la observada.  
-  4. Visualizar la distribución de las diferencias de medias simuladas y marcar la diferencia observada.  
-- **Pista:** Use funciones como `sample()`, `replicate()` y ggplot2 para la visualización.
+### Ejercicio 4: Comparación de Medias mediante Re‑muestreo
+
+Simulen dos grupos independientes de 50 observaciones cada uno.  
+- Grupo A: datos generados de una distribución normal con media 20 y desviación 2.  
+- Grupo B: datos generados de una distribución normal con media 22 y desviación 2.  
+
+Planteen la hipótesis nula H₀: µₐ = µ_b contra la alternativa H₁: µₐ ≠ µ_b.  
+Realicen lo siguiente:  
+1. Calcular la diferencia de medias observada.  
+2. Combinar ambos grupos y, mediante re‑muestreo (1000 simulaciones), generar la distribución de la diferencia de medias bajo H₀ asignando aleatoriamente los datos en dos grupos de 50 observaciones.  
+3. Calcular el p‑valor como la proporción de simulaciones en las que la diferencia absoluta simulada es mayor o igual a la diferencia observada.  
+4. Visualizar la distribución de las diferencias simuladas y marcar la diferencia observada.
 
 
 ## 5. Resoluciones de los Ejercicios
@@ -475,61 +715,38 @@ p_valor_binom_e3 <- 2 * min(
 )
 
 cat("Número de caras:", caras_e3, "\n")
-cat("p-valor (binomial):", round(p_valor_binom_e3,4), "\n")
+cat("p-valor (binomial):", round(p_valor_binom_e3,9), "\n")
 
 # Con α = 0.05, si el p-valor es menor, se rechaza la hipótesis de moneda justa.
 ```
 
-### Resolución Ejercicio 4 (Integrador)
+### Resolución Ejercicio 4 
+
 
 ```{r}
-set.seed(303)
-# Simular dos grupos de 50 observaciones
-grupo_A <- rnorm(50, mean = 20, sd = 4)
-grupo_B <- rnorm(50, mean = 22, sd = 4)
+set.seed(2025)
+library(ggplot2)
 
-# Diferencia de medias observada
+grupo_A <- rnorm(50, mean = 20, sd = 2)
+grupo_B <- rnorm(50, mean = 22, sd = 2)
 diff_obs <- mean(grupo_B) - mean(grupo_A)
-cat("Diferencia observada (B - A):", round(diff_obs,2), "\n")
-
-# Combinamos ambos grupos para simular bajo H₀ (no hay diferencia)
-datos_combinados <- c(grupo_A, grupo_B)
-n_total <- length(datos_combinados)
-
-# Número de simulaciones
-simulaciones <- 5000
-diferencias_sim <- replicate(simulaciones, {
-  # Mezclar aleatoriamente y dividir en dos grupos de igual tamaño
-  permutacion <- sample(datos_combinados, n_total, replace = FALSE)
-  grupo1 <- permutacion[1:50]
-  grupo2 <- permutacion[51:100]
-  mean(grupo2) - mean(grupo1)
+pool <- c(grupo_A, grupo_B)
+n <- length(grupo_A)
+n_sim <- 1000
+diff_sim <- replicate(n_sim, {
+  muestra <- sample(pool)
+  mean(muestra[(n+1):(2*n)]) - mean(muestra[1:n])
 })
-
-# Calcular el p-valor como la proporción de simulaciones en las que
-# la diferencia absoluta es mayor o igual a la observada
-p_valor_sim <- mean(abs(diferencias_sim) >= abs(diff_obs))
-cat("p-valor (simulación):", round(p_valor_sim,4), "\n")
-
-# Visualización de la distribución de diferencias simuladas
-df_sim <- data.frame(diferencia = diferencias_sim)
-
-ggplot(df_sim, aes(x = diferencia)) +
-  geom_histogram(bins = 30, fill = "lightgreen", color = "black", alpha = 0.7) +
+p_valor <- mean(abs(diff_sim) >= abs(diff_obs))
+ggplot(data.frame(diff_sim = diff_sim), aes(x = diff_sim)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "black") +
   geom_vline(xintercept = diff_obs, color = "red", size = 1.2) +
-  geom_vline(xintercept = -diff_obs, color = "red", size = 1.2) +
-  labs(title = "Distribución de Diferencias de Medias (Simulaciones)",
-       subtitle = paste("Diferencia Observada =", round(diff_obs,2),
-                        "| p-valor =", round(p_valor_sim,4)),
+  labs(title = "Distribución de Diferencias de Medias Simuladas",
+       subtitle = paste("Diferencia Observada =", round(diff_obs, 2),
+                        "| p-valor =", round(p_valor, 4)),
        x = "Diferencia de Medias", y = "Frecuencia") +
   theme_minimal()
 ```
-
-*Interpretación:*  
-El método de re-muestreo nos permite aproximar la distribución de la diferencia de medias bajo la hipótesis nula. Si el p‑valor es pequeño (por ejemplo, menor a 0.05), se concluye que es poco probable observar una diferencia tan grande por azar, lo que sugiere que los grupos difieren en sus medias.
-
-
-A continuación se presenta una clase muy detallada (para 2 horas) en la que se abordan los conceptos de **Errores Tipo I y Tipo II**, **Potencia de la Prueba** y **Test de Independencia**. La clase incluye explicaciones teóricas, ejemplos prácticos en R (con visualizaciones usando ggplot2 cuando aplica) y ejercicios con sus resoluciones, de modo que los estudiantes construyan una base sólida para futuras aplicaciones en inferencia estadística.
 
 
 
@@ -543,7 +760,44 @@ El **test de independencia** se utiliza para determinar si dos variables categó
   - **H₀:** Las dos variables son independientes.
   - **H₁:** Existe una asociación (dependencia) entre las dos variables.
 
-### 3.2. Ejemplo Práctico con Datos Simulados
+### 3.2.0 Ejemplo super sencillo
+```{r}
+observado <- matrix(c(35, 25, 20, 20), nrow = 2, byrow = TRUE)
+rownames(observado) <- c("Masculino", "Femenino")
+colnames(observado) <- c("Sí", "No")
+observado
+
+fila_totales <- rowSums(observado)
+col_totales <- colSums(observado)
+total <- sum(observado)
+
+esperado <- outer(fila_totales, col_totales) / total
+esperado
+
+chi2_manual <- sum((observado - esperado)^2 / esperado)
+chi2_manual
+
+```
+Ahora hay que comparar el estadistico para saber su probabilidad y p-valor
+```{r}
+df <- (nrow(observado) - 1) * (ncol(observado) - 1)
+alpha <- 0.05
+valor_critico <- qchisq(1 - alpha, df)
+valor_critico
+
+if (chi2_manual > valor_critico) {
+  cat("Se rechaza H0\n")
+} else {
+  cat("No se rechaza H0\n")
+}
+
+```
+P valor seria
+```{r}
+pchisq(chi2_manual, df=1)
+```
+
+### 3.2.1 Ejemplo Práctico con Datos Simulados
 
 Imaginemos un escenario donde se evalúa la relación entre el género (Masculino, Femenino) y la preferencia por un producto (Sí, No).
 
@@ -582,76 +836,76 @@ ggplot(datos_cat, aes(x = genero, fill = preferencia)) +
   theme_minimal()
 
 ```
+```{r}
+# Simulación de datos
+set.seed(123)
+
+grupo_etario <- c(rep("10-30", 100), rep("30-50", 100), rep("50-80", 100))
+genero_pelicula <- c(
+  sample(c("Comedia", "Acción", "Romance"), 100, replace = TRUE, prob = c(0.5, 0.4, 0.1)),
+  sample(c("Comedia", "Acción", "Romance"), 100, replace = TRUE, prob = c(0.3, 0.5, 0.2)),
+  sample(c("Comedia", "Acción", "Romance"), 100, replace = TRUE, prob = c(0.2, 0.2, 0.6))
+)
+
+datos_cat_ext <- data.frame(grupo_etario, genero_pelicula)
+
+# Crear la tabla de contingencia
+tabla_contingencia_ext <- table(datos_cat_ext$grupo_etario, datos_cat_ext$genero_pelicula)
+print(tabla_contingencia_ext)
+
+# Realizar el test de chi-cuadrado de independencia
+test_independencia_ext <- chisq.test(tabla_contingencia_ext)
+print(test_independencia_ext)
+
+```
+```{r}
+
+ggplot(datos_cat_ext, aes(x = grupo_etario, fill = genero_pelicula)) +
+  geom_bar(position = "fill") +
+  labs(title = "Preferencias de Género de Película por Grupo Etario",
+       x = "Grupo Etario",
+       y = "Proporción",
+       fill = "Género de Película") +
+  theme_minimal()
+
+```
 
 
 ## 4. Ejercicios
 
-### Ejercicio 1: Errores Tipo I y Tipo II  
--   
-  Simule una muestra de 50 datos con una media de 12 y desviación 3. Plantee la prueba:  
-  - H₀: µ = 10  
-  - H₁: µ ≠ 10  
-  Calcule el estadístico de prueba, el p‑valor y discuta en qué situaciones podría incurrirse en un Error Tipo I o en un Error Tipo II.
 
 ### Ejercicio 2: Potencia de la Prueba  
--   
+
+Simule una muestra de 50 datos con una media de 12 y desviación 3. Plantee la prueba:
+- H₀: µ = 10
+- H₁: µ ≠ 10
+
   Utilice la función `power.t.test()` para determinar el tamaño muestral necesario para alcanzar una potencia de al menos 0.85, considerando un tamaño del efecto (diferencia) de 2, una desviación estándar de 3 y un nivel de significancia de 0.05.
 
 ### Ejercicio 3: Test de Independencia  
 -   
-  Dado el siguiente conjunto de datos simulados que representan la relación entre el tipo de estudio (Presencial, Virtual) y la satisfacción (Alta, Media, Baja) de los estudiantes, realice lo siguiente:  
+  Dado el siguiente conjunto de datos simulados que representan la relación entre el tipo de estudio (Presencial, Virtual) y la satisfacción (Alta, Media, Baja) de los estudiantes.
+
+set.seed(123)
+tipo_estudio <- sample(c("Presencial", "Virtual"), size = 150, replace = TRUE, prob = c(0.6, 0.4))
+satisfaccion <- sample(c("Alta", "Media", "Baja"), size = 150, replace = TRUE, prob = c(0.5, 0.3, 0.2))
+datos_e3 <- data.frame(tipo_estudio, satisfaccion)
+
+Realice lo siguiente:  
   1. Construya la tabla de contingencia.  
   2. Realice el test de chi-cuadrado para determinar si existe una relación entre las dos variables.  
   3. Visualice los resultados utilizando un gráfico de mosaico.  
 
-> *Pista:* Puede crear los datos utilizando la función `sample()`.
-
-### Ejercicio 4 (Integrador y más extenso):  
--   
-  Combine los conceptos de errores, potencia y test de independencia en el siguiente escenario:  
-  1. Simule dos grupos de estudiantes de 100 observaciones cada uno, donde se mida la nota final. Suponga que el Grupo A tiene una media de 75 y el Grupo B de 80 (con desviación 10).  
-  2. Realice una prueba (utilizando el enfoque de re-muestreo o métodos paramétricos) para determinar si existe una diferencia en las medias.  
-  3. Calcule la potencia de la prueba para detectar dicha diferencia.  
-  4. Además, simule una variable categórica “asistencia” (Alta, Baja) y verifique si existe asociación entre el grupo de estudio (A o B) y la asistencia mediante un test de independencia.  
-  5. Visualice los resultados de ambas pruebas.
 
 
 ## 5. Resoluciones de los Ejercicios
-
-### Resolución Ejercicio 1: Errores Tipo I y Tipo II
-
-```{r}
-set.seed(2021)
-# Simular 50 datos con media = 12 y sd = 3
-muestra_e1 <- rnorm(50, mean = 12, sd = 3)
-media_muestra_e1 <- mean(muestra_e1)
-sd_muestra_e1 <- sd(muestra_e1)
-n_e1 <- length(muestra_e1)
-
-# Hipótesis: H₀: µ = 10, H₁: µ ≠ 10
-media_hip_e1 <- 10
-error_est_e1 <- sd_muestra_e1 / sqrt(n_e1)
-z_e1 <- (media_muestra_e1 - media_hip_e1) / error_est_e1
-p_valor_e1 <- 2 * (1 - pnorm(abs(z_e1)))
-
-cat("Media de la muestra:", round(media_muestra_e1,2), "\n")
-cat("Estadístico z:", round(z_e1,2), "\n")
-cat("p-valor:", round(p_valor_e1,4), "\n")
-```
-
-*Comentario:*  
-- Si el p‑valor es menor a 0.05, se rechaza H₀.  
-- Cometer un Error Tipo I implicaría rechazar H₀ cuando la media real fuera 10.  
-- Un Error Tipo II se cometería si no se rechaza H₀ aun cuando la media real sea 12.
-
 
 
 ### Resolución Ejercicio 2: Potencia de la Prueba
 
 ```{r}
 # Determinar el tamaño muestral necesario para una potencia de 0.85
-resultado_potencia <- power.t.test(delta = 2, sd = 3, sig.level = 0.05, power = 0.85,
-                                   type = "two.sample", alternative = "two.sided")
+resultado_potencia <- power.t.test(delta = 2, sd = 3, sig.level = 0.05, power = 0.85, type = "one.sample", alternative = "two.sided")
 print(resultado_potencia)
 ```
 
@@ -690,117 +944,6 @@ ggplot(datos_e3, aes(x = tipo_estudio, fill = satisfaccion)) +
 
 ```
 
-*Comentario:*  
-Si el p‑valor del test chi-cuadrado es menor a 0.05, se rechaza la hipótesis de independencia, indicando que existe una asociación entre el tipo de estudio y el nivel de satisfacción.
-
-
-
-### Resolución Ejercicio 4 (Integrador)
-
-```{r}
-set.seed(555)
-# 1. Simulación de notas para dos grupos
-grupo_A <- rnorm(100, mean = 75, sd = 10)
-grupo_B <- rnorm(100, mean = 80, sd = 10)
-
-# Diferencia observada en las medias
-diff_obs <- mean(grupo_B) - mean(grupo_A)
-cat("Diferencia observada (B - A):", round(diff_obs,2), "\n")
-
-# 2. Prueba de diferencia de medias (enfoque paramétrico)
-# Estadístico t para muestras independientes:
-n1 <- n2 <- 100
-var_pooled <- (((n1-1)*var(grupo_A)) + ((n2-1)*var(grupo_B)))/(n1+n2-2)
-error_est_diff <- sqrt(var_pooled*(1/n1 + 1/n2))
-t_stat <- diff_obs / error_est_diff
-p_valor_diff <- 2*(1 - pt(abs(t_stat), df = n1+n2-2))
-cat("t:", round(t_stat,2), " - p-valor:", round(p_valor_diff,4), "\n")
-
-# 3. Calcular la potencia de la prueba
-potencia_integrador <- power.t.test(n = 100, delta = diff_obs, sd = sqrt(var_pooled), sig.level = 0.05,
-                                    type = "two.sample", alternative = "two.sided")
-print(potencia_integrador)
-
-# 4. Simulación de variable categórica "asistencia"
-# Suponemos que la probabilidad de alta asistencia varía según el grupo.
-asistencia_A <- sample(c("Alta", "Baja"), size = 100, replace = TRUE, prob = c(0.8, 0.2))
-asistencia_B <- sample(c("Alta", "Baja"), size = 100, replace = TRUE, prob = c(0.6, 0.4))
-grupo <- rep(c("A", "B"), each = 100)
-asistencia <- c(asistencia_A, asistencia_B)
-datos_integrador <- data.frame(grupo, asistencia)
-
-# Tabla de contingencia y test de independencia
-tabla_integrador <- table(datos_integrador$grupo, datos_integrador$asistencia)
-print(tabla_integrador)
-test_integrador <- chisq.test(tabla_integrador)
-print(test_integrador)
-
-library(ggplot2)
-
-# Create the stacked bar chart
-ggplot(datos_integrador, aes(x = grupo, fill = asistencia)) +
-  geom_bar(position = "fill") +  # "fill" makes it proportional
-  labs(title = "Distribución de Asistencia por Grupo de Estudio",
-       x = "Grupo de Estudio",
-       y = "Proporción",
-       fill = "Asistencia") +
-  theme_minimal()
-
-```
-
-*Comentario:*  
-- Se evalúa si existe diferencia significativa en las notas entre ambos grupos y se calcula la potencia del test.  
-- Posteriormente, se analiza si la variable “asistencia” se asocia al grupo de estudio, interpretándose el p‑valor del test chi-cuadrado.
-
-A continuación se presenta una clase completa y detallada en la que primero se introducen todos los conceptos y ejemplos prácticos (usando datasets reales cuando es posible y visualizaciones con ggplot2) sobre:
-
-1. Bootstrapping para variables cualitativas (proporciones)  
-2. Test de permutaciones para variables cualitativas (proporciones)  
-3. Test de homogeneidad  
-4. Test exacto de Fisher  
-5. Test de homocedasticidad  
-6. Test de normalidad  
-
-Luego se incluye una sección de ejercicios (al menos uno por tema y un ejercicio integrador) y, finalmente, la sección de resoluciones de cada ejercicio.
-
-
-
-
-El **bootstrapping** es un método de remuestreo que permite estimar la distribución de una estadística (por ejemplo, la proporción) al generar muchas muestras “bootstrap” (con reemplazo) a partir de la muestra original. En variables cualitativas, se utiliza para estimar la proporción de un determinado nivel (por ejemplo, la proporción de “Sí”) y para obtener intervalos de confianza sin depender de distribuciones teóricas.
-
-### Ejemplo Práctico
-
-Simulamos una muestra de 100 respuestas (niveles: “Sí” y “No”) y calculamos la proporción de “Sí”. Luego generamos 1000 réplicas para obtener el intervalo de confianza al 95% y visualizamos la distribución.
-
-```{r}
-set.seed(123)
-# Simulación de 100 respuestas con probabilidad 0.65 de "Sí"
-respuestas <- sample(c("Sí", "No"), size = 100, replace = TRUE, prob = c(0.65, 0.35))
-prop_original <- mean(respuestas == "Sí")
-cat("Proporción original de 'Sí':", round(prop_original, 2), "\n")
-
-# Bootstrapping: 1000 réplicas
-n_boot <- 1000
-boot_prop <- replicate(n_boot, {
-  muestra_boot <- sample(respuestas, size = length(respuestas), replace = TRUE)
-  mean(muestra_boot == "Sí")
-})
-
-# Intervalo de confianza al 95%
-CI <- quantile(boot_prop, probs = c(0.025, 0.975))
-cat("Intervalo de confianza 95%:", round(CI[1],2), "-", round(CI[2],2), "\n")
-
-# Visualización con ggplot2
-library(ggplot2)
-df_boot <- data.frame(prop = boot_prop)
-ggplot(df_boot, aes(x = prop)) +
-  geom_histogram(bins = 30, fill = "lightblue", color = "black", alpha = 0.7) +
-  geom_vline(xintercept = CI, color = "red", linetype = "dashed", size = 1) +
-  labs(title = "Distribución Bootstrapping de la Proporción de 'Sí'",
-       x = "Proporción", y = "Frecuencia") +
-  theme_minimal()
-```
-
 
 
 ## 2. Test de Permutaciones para Variables Cualitativas (Proporciones)
@@ -816,7 +959,6 @@ El **test de permutaciones** es un método no paramétrico que consiste en reord
 ### Ejemplo Práctico
 
 Simulamos dos grupos de 80 observaciones cada uno, donde en el Grupo A la proporción de “Sí” es 0.70 y en el Grupo B es 0.55. Se evalúa si la diferencia es significativa mediante 5000 permutaciones.
-
 ```{r}
 set.seed(456)
 n <- 80
@@ -826,13 +968,19 @@ respuesta <- c(
   sample(c("Sí", "No"), size = n, replace = TRUE, prob = c(0.55, 0.45))
 )
 datos_perm <- data.frame(grupo, respuesta)
+datos_perm
+```
 
-# Diferencia observada en la proporción de "Sí"
+Diferencia observada en la proporción de "Sí"
+
+```{r}
 prop_A <- mean(datos_perm$respuesta[datos_perm$grupo == "A"] == "Sí")
 prop_B <- mean(datos_perm$respuesta[datos_perm$grupo == "B"] == "Sí")
 diff_obs <- prop_A - prop_B
-cat("Diferencia observada (A - B):", round(diff_obs, 3), "\n")
+diff_obs
+```
 
+```{r}
 # Permutaciones: 5000 réplicas
 n_perm <- 5000
 dif_perm <- replicate(n_perm, {
@@ -853,48 +1001,6 @@ ggplot(df_perm, aes(x = diff)) +
   geom_vline(xintercept = diff_obs, color = "red", linetype = "dashed", size = 1.2) +
   labs(title = "Distribución de Diferencias en Proporciones (Permutaciones)",
        x = "Diferencia (Grupo A - Grupo B)", y = "Frecuencia") +
-  theme_minimal()
-```
-
-
-
-## 3. Test de Homogeneidad
-
-### Concepto y Uso
-
-El **test de homogeneidad** se utiliza para determinar si la distribución de una variable categórica es la misma en distintos grupos.  
-- **Hipótesis:**  
-  - H₀: Las proporciones de las categorías son iguales en todos los grupos.  
-  - H₁: Al menos uno de los grupos presenta una distribución diferente.  
-- **Método:** Se usa el test chi-cuadrado aplicado a una tabla de contingencia.
-
-### Ejemplo Práctico
-
-Utilizaremos el dataset *iris*. Creamos una variable a partir de *Sepal.Width*:
-- "Ancho" si el valor es mayor o igual a la mediana.  
-- "Estrecho" si es menor que la mediana.
-
-Luego evaluamos si la distribución de esta variable es homogénea entre las especies.
-
-```{r}
-set.seed(789)
-data(iris)
-# Crear variable categórica "Ancho_Sepal"
-iris$Ancho_Sepal <- ifelse(iris$Sepal.Width >= median(iris$Sepal.Width), "Ancho", "Estrecho")
-
-# Tabla de contingencia
-tabla_homo <- table(iris$Species, iris$Ancho_Sepal)
-print(tabla_homo)
-
-# Test de homogeneidad (chi-cuadrado)
-test_homo <- chisq.test(tabla_homo)
-print(test_homo)
-
-# Visualización: gráfico de barras apiladas
-ggplot(iris, aes(x = Species, fill = Ancho_Sepal)) +
-  geom_bar(position = "fill") +
-  labs(title = "Proporción de 'Ancho' vs. 'Estrecho' según Species",
-       x = "Species", y = "Proporción") +
   theme_minimal()
 ```
 
@@ -928,38 +1034,11 @@ print(test_fisher)
 
 
 
-## 5. Test de Homocedasticidad
+
+## 5. Test de Normalidad
 
 ### Concepto y Uso
 
-El test de homocedasticidad evalúa si la varianza de los datos es la misma en distintos grupos, lo cual es un supuesto fundamental en muchos tests paramétricos.  
-- **Métodos comunes:**  
-  - Test de Bartlett (más sensible a la normalidad).  
-  - Test de Levene (más robusto).
-
-### Ejemplo Práctico
-
-Utilizaremos el dataset *iris* para evaluar si la varianza de *Sepal.Length* es homogénea entre las especies mediante el test de Bartlett.
-
-```{r}
-# Test de homocedasticidad con Bartlett
-bartlett_result <- bartlett.test(Sepal.Length ~ Species, data = iris)
-print(bartlett_result)
-
-# Visualización: Boxplot de Sepal.Length por Species
-ggplot(iris, aes(x = Species, y = Sepal.Length, fill = Species)) +
-  geom_boxplot(alpha = 0.7) +
-  labs(title = "Boxplot de Sepal.Length por Species",
-       x = "Species", y = "Sepal.Length") +
-  theme_minimal()
-```
-
-
-## 6. Test de Normalidad
-
-### Concepto y Uso
-
-El test de normalidad se utiliza para evaluar si una variable sigue una distribución normal, lo que es importante para muchos análisis paramétricos.  
 - **Test común:** Shapiro-Wilk.  
 - **Complemento visual:** Q-Q plot y histogramas.
 
@@ -971,6 +1050,24 @@ Aplicamos el test de Shapiro-Wilk a la variable *Sepal.Length* del dataset *iris
 # Test de Shapiro-Wilk para Sepal.Length
 shapiro_result <- shapiro.test(iris$Sepal.Length)
 print(shapiro_result)
+```
+
+```{r}
+shapiro_result <- shapiro.test(rnorm(150))
+print(shapiro_result)
+```
+
+```{r}
+shapiro_result <- shapiro.test(rexp(150, rate=1))
+print(shapiro_result)
+```
+
+```{r}
+shapiro_result <- shapiro.test(runif(150, min=0, max=1))
+print(shapiro_result)
+```
+
+```{r}
 
 # Q-Q plot con ggplot2
 ggplot(iris, aes(sample = Sepal.Length)) +
@@ -986,6 +1083,27 @@ ggplot(iris, aes(sample = Sepal.Length)) +
 El test de Anderson-Darling es una prueba estadística que evalúa si un conjunto de datos sigue una distribución teórica, en este caso, la distribución normal. A diferencia del test de Shapiro-Wilk, este test pone mayor énfasis en las colas de la distribución, lo que lo hace especialmente sensible a desviaciones en los extremos. El método se basa en comparar la función de distribución empírica de la muestra con la función de distribución teórica esperada. El estadístico del test se calcula a partir de la suma ponderada de las diferencias entre ambas funciones. Un valor alto del estadístico indica una discrepancia significativa, sugiriendo que los datos pueden no seguir una distribución normal
 
 ```{r}
+x <- iris$Sepal.Length
+n <- length(x)
+
+x_sorted <- sort(x)
+
+x_mean <- mean(x_sorted)
+x_sd <- sd(x_sorted)
+
+z <- (x_sorted - x_mean) / x_sd
+
+F_z <- pnorm(z)
+
+i <- 1:n
+A2 <- -n - (1/n) * sum((2*i - 1) * (log(F_z) + log(1 - rev(F_z))))
+
+cat("Estadístico A² calculado manualmente:", A2, "\n")
+
+```
+valores_criticos <- c("15%" = 0.576, "10%" = 0.656, "5%" = 0.787, "2.5%" = 0.918, "1%" = 1.092)
+
+```{r}
 # Cargar el paquete nortest (instalar si es necesario)
 if (!require(nortest)) {
   install.packages("nortest")
@@ -997,6 +1115,11 @@ ad_result <- ad.test(iris$Sepal.Length)
 print(ad_result)
 
 
+
+```
+
+```{r}
+
 ggplot(iris, aes(x = Sepal.Length)) +
   geom_histogram(aes(y = ..density..), bins = 30, fill = "skyblue", color = "black") +
   stat_function(fun = dnorm, 
@@ -1005,7 +1128,6 @@ ggplot(iris, aes(x = Sepal.Length)) +
   labs(title = "Histograma de Sepal.Length con curva normal",
        x = "Sepal.Length", y = "Densidad") +
   theme_minimal()
-
 ```
 
 ```{r}
@@ -1029,7 +1151,67 @@ ggplot(df, aes(x = normal_real)) +
 
 ```
 
-# Sección de Ejercicios
+
+## 6. Test de Homocedasticidad
+
+### Concepto y Uso
+
+El test de homocedasticidad evalúa si la varianza de los datos es la misma en distintos grupos, lo cual es un supuesto fundamental en muchos tests paramétricos.  
+- **Métodos comunes:**  
+  - Test de Bartlett (más sensible a la normalidad).  
+  - Test de Levene (más robusto).
+
+### Ejemplo Práctico
+
+Utilizaremos el dataset *iris* para evaluar si la varianza de *Sepal.Length* es homogénea entre las especies mediante el test de Bartlett.
+
+```{r}
+data <- iris
+grupo1 <- data$Sepal.Length[data$Species == "setosa"]
+grupo2 <- data$Sepal.Length[data$Species == "versicolor"]
+grupo3 <- data$Sepal.Length[data$Species == "virginica"]
+
+n1 <- length(grupo1)
+n2 <- length(grupo2)
+n3 <- length(grupo3)
+
+s1_sq <- var(grupo1)
+s2_sq <- var(grupo2)
+s3_sq <- var(grupo3)
+
+N <- n1 + n2 + n3
+k <- 3
+
+sp_sq <- ((n1 - 1)*s1_sq + (n2 - 1)*s2_sq + (n3 - 1)*s3_sq) / (N - k)
+
+ln_sp <- log(sp_sq)
+ln_s <- (n1 - 1)*log(s1_sq) + (n2 - 1)*log(s2_sq) + (n3 - 1)*log(s3_sq)
+
+numerador <- (N - k)*ln_sp - ln_s
+denominador <- 1 + (1/(3*(k - 1))) * ((1/(n1 - 1)) + (1/(n2 - 1)) + (1/(n3 - 1)) - (1/(N - k)))
+
+Testad <- numerador / denominador
+p_valor <- 1 - pchisq(Testad, df = k - 1)
+
+cat("Estadístico de Bartlett T:", Testad, "\n")
+cat("p-valor:", p_valor, "\n")
+
+```
+```{r}
+# Test de homocedasticidad con Bartlett
+bartlett_result <- bartlett.test(Sepal.Length ~ Species, data = iris)
+print(bartlett_result)
+```
+
+```{r}
+
+# Visualización: Boxplot de Sepal.Length por Species
+ggplot(iris, aes(x = Species, y = Sepal.Length, fill = Species)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(title = "Boxplot de Sepal.Length por Species",
+       x = "Species", y = "Sepal.Length") +
+  theme_minimal()
+```
 
 ### Ejercicio 1: Bootstrapping para Proporciones
   

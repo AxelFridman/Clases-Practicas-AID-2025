@@ -1,0 +1,128 @@
+---
+title: "Clase 4 AID - Métricas de Distancia y Similitud en R"
+output: html_notebook
+---
+
+
+
+# Introducción
+
+
+## Contenido
+1. [Distancia Euclídea](#distancia-euclidea)
+2. [Distancia Manhattan](#distancia-manhattan)
+3. [Distancia Chebyshev](#distancia-chebyshev)
+4. [Distancia Minkowski](#distancia-minkowski)
+5. [Índice de Jaccard](#indice-de-jaccard)
+6. [Conclusiones](#conclusiones)
+
+
+
+## Distancia Euclídea <a name="distancia-euclidea"></a>
+
+La **distancia Euclídea** se utiliza ampliamente en algoritmos de clustering (por ejemplo, K-means), métodos de reducción de dimensionalidad como PCA y en K-Nearest Neighbors (KNN).
+
+**Fórmula:**  
+\[
+d(\mathbf{x}, \mathbf{y}) = \sqrt{\sum_{i=1}^{n} \left(x_i - y_i\right)^2}
+\]
+
+**Ejemplo de uso:** Conjunto de dos puntos en un espacio de 2 dimensiones.
+
+```{r}
+x <- c(2, 3)
+y <- c(6, 7)
+sqrt(sum((x - y)^2))
+```
+
+
+
+## Distancia Manhattan <a name="distancia-manhattan"></a>
+
+La **distancia Manhattan** (o L1) se emplea en árboles de decisión, KNN y cuando se espera que las variables puedan tener valores atípicos, ya que suele ser más robusta que la Euclídea en esos casos.
+
+**Fórmula:**  
+\[
+d(\mathbf{x}, \mathbf{y}) = \sum_{i=1}^{n} \left|x_i - y_i\right|
+\]
+
+**Ejemplo de uso:** Conjunto de dos puntos en un espacio de 2 dimensiones.
+
+```{r}
+x <- c(2, 3)
+y <- c(6, 7)
+sum(abs(x - y))
+```
+
+
+
+## Distancia Chebyshev <a name="distancia-chebyshev"></a>
+
+La **distancia Chebyshev** se utiliza en escenarios donde se mide la discrepancia en el máximo de las dimensiones, como en análisis de riesgo o control de calidad (QA).
+
+**Fórmula:**  
+\[
+d(\mathbf{x}, \mathbf{y}) = \max_{i} \left|x_i - y_i\right|
+\]
+
+**Ejemplo de uso:** Conjunto de dos puntos en un espacio de 2 dimensiones.
+
+```{r}
+x <- c(2, 3)
+y <- c(6, 7)
+max(abs(x - y))
+```
+
+
+
+## Distancia Minkowski <a name="distancia-minkowski"></a>
+
+La **distancia Minkowski** es una generalización de la Euclídea y Manhattan. Si \(p=1\) es Manhattan; si \(p=2\) es Euclídea.
+
+**Fórmula:**  
+\[
+d(\mathbf{x}, \mathbf{y}) = \left(\sum_{i=1}^{n} \left|x_i - y_i\right|^p\right)^{\tfrac{1}{p}}
+\]
+
+**Ejemplo de uso:** Conjunto de dos puntos en un espacio de 2 dimensiones, con \(p=3\).
+
+```{r}
+x <- c(2, 3)
+y <- c(6, 7)
+p <- 3
+(sum(abs(x - y)^p))^(1/p)
+```
+
+
+
+## Índice de Jaccard <a name="indice-de-jaccard"></a>
+
+El **Índice de Jaccard** mide la similitud entre dos conjuntos binarios, útil en clustering o al comparar sets de palabras clave, por ejemplo.
+
+**Fórmula:**  
+\[
+J(\mathbf{x}, \mathbf{y}) = \frac{\lvert x \cap y \rvert}{\lvert x \cup y \rvert}
+\]
+
+**Ejemplo de uso:** Vectores binarios en un espacio de 5 dimensiones.
+
+```{r}
+x <- c(1, 1, 0, 0, 1)
+y <- c(1, 0, 0, 1, 1)
+intersection <- sum(x & y)
+union <- sum(x | y)
+intersection / union
+```
+
+
+
+## Conclusiones <a name="conclusiones"></a>
+
+- La **Distancia Euclídea** es la más común para espacios continuos y se relaciona estrechamente con la norma L2.
+- La **Distancia Manhattan** es útil cuando se desea menor sensibilidad a valores atípicos.
+- La **Distancia Chebyshev** capta la máxima discrepancia en cualquiera de los ejes.
+- La **Distancia Minkowski** permite ajustar el parámetro \(p\) y unificar Euclídea y Manhattan bajo un mismo marco.
+- El **Índice de Jaccard** es ideal para medir similitud en datos binarios o conjuntos.
+
+Estas herramientas son fundamentales en tareas de análisis de datos y aprendizaje automático, ya que ayudan a determinar qué observaciones están “cerca” o “lejos” en términos de sus atributos o características.
+```
