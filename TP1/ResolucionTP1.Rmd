@@ -22,6 +22,9 @@ file_path <- "dirty_cafe_sales.csv"
 cafe_sales_df <- read_csv(file_path)
 head(cafe_sales_df)
 ```
+```{r}
+cafe_sales_df[cafe_sales_df$Item=='Tea',]
+```
 
 ## 2. Análisis Exploratorio Inicial de algunas columnas
 
@@ -287,11 +290,11 @@ table(cafe_sales_df[cafe_sales_df$Item == "Coffee", ]$`Price Per Unit`)
 
 ### Actualización de _Price Per Unit_ basándose en un menú predefinido
 
-El menú es el siguiente: Cake: 3, Juice: 3, Coffee: 2, Cookie: 1, Salad: 5, Sandwich: 4, Smoothie: 4, Tea: 2.
+El menú es el siguiente: Cake: 3, Juice: 3, Coffee: 2, Cookie: 1, Salad: 5, Sandwich: 4, Smoothie: 4, Tea: 1.5.
 
 ```{r}
 library(dplyr)
-menu <- c("Cake" = 3, "Juice" = 3, "Coffee" = 2, "Cookie" = 1, "Salad" = 5, "Sandwich" = 4, "Smoothie" = 4, "Tea" = 2)
+menu <- c("Cake" = 3, "Juice" = 3, "Coffee" = 2, "Cookie" = 1, "Salad" = 5, "Sandwich" = 4, "Smoothie" = 4, "Tea" = 1.5)
 cafe_sales_df$`Price Per Unit` <- as.numeric(cafe_sales_df$`Price Per Unit`)
 cafe_sales_df <- cafe_sales_df %>%
   mutate(`Price Per Unit` = if_else(

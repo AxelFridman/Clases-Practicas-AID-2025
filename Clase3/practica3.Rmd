@@ -269,7 +269,6 @@ ggplot(df_beta_delta, aes(x = delta, y = Beta, color = factor(alpha))) +
 
 # 5. Ejemplo de Prueba de Hipótesis y Cálculo de p‑valor
 
-Aunque el foco principal es mostrar la relación entre \(\alpha\), \(\beta\) y \(n\), también recordamos el concepto de **p‑valor**:
 
 1. **p‑valor pequeño (ej. < 0.05):** Evidencia para rechazar H₀.  
 2. **p‑valor grande:** No hay evidencia suficiente para rechazar H₀.
@@ -300,7 +299,7 @@ cat("p-valor:", round(p_valor, 4), "\n")
 
 ```{r}
 set.seed(100)
-sd_poblacional <- 2 # conocido
+sd_poblacional <- 2 # desconocido
 # Simulamos datos donde la media real es 10.5, sd=2, n=40
 muestra <- rnorm(40, mean = 10.5, sd = sd_poblacional)
 
@@ -406,9 +405,7 @@ t_test_resultado
 
 ```{r}
 set.seed(1804)
-# ----------------------
-# Datos simulados
-# ----------------------
+
 n1 <- 9
 n2 <- 11
 mu_a_real <- 15
@@ -502,6 +499,27 @@ p_valor_welch_left <- pt(t_stat_welch, df = df_welch)
 cat("p-valor bilateral (Welch):", round(p_valor_welch_two, 4), "\n")
 cat("p-valor unilateral (B > A) (Welch):", round(p_valor_welch_right, 4), "\n")
 cat("p-valor unilateral (B < A) (Welch):", round(p_valor_welch_left, 4), "\n")
+
+```
+```{r}
+
+# Varianzas iguales - Alternativa bilateral
+t.test(grupo_B, grupo_A, var.equal = TRUE, type="two.sample", alternative = "two.sided")
+
+# Varianzas iguales - Alternativa B > A
+t.test(grupo_B, grupo_A, var.equal = TRUE, type="two.sample",alternative = "greater")
+
+# Varianzas iguales - Alternativa B < A
+t.test(grupo_B, grupo_A, var.equal = TRUE, type="two.sample",alternative = "less")
+
+# Varianzas diferentes (Welch) - Alternativa bilateral
+t.test(grupo_B, grupo_A, var.equal = FALSE, type="two.sample",alternative = "two.sided")
+
+# Varianzas diferentes (Welch) - Alternativa B > A
+t.test(grupo_B, grupo_A, var.equal = FALSE, type="two.sample",alternative = "greater")
+
+# Varianzas diferentes (Welch) - Alternativa B < A
+t.test(grupo_B, grupo_A, var.equal = FALSE, type="two.sample",alternative = "less")
 
 ```
 
