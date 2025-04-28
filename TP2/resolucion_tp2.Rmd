@@ -30,6 +30,9 @@ celu_dataset <- read_csv(file_path)
 head(celu_dataset)
 ```
 
+```{r}
+celu_dataset[celu_dataset$`Back Camera`=="50MP + 16MP + 13MP + 2MP",]
+```
 
 ## 1. Limpieza y Estandarización de Datos
 
@@ -118,9 +121,18 @@ Interpretar el resultado y redondearlo al entero inmediato superior si no da un 
 ### iv) Recalcular usando `power.t.test`
 
 Como la desviación estándar a veces se estima, podemos usar la función `power.t.test` (aunque esta asume un test t, mientras que el ejemplo original está en contexto z, es ilustrativo para el cálculo de n).
+```{r}
+install.packages("pwr")
+library(pwr)
+
+```
+```{r}
+pwr.norm.test(d = 100 / 175, sig.level = 0.05, power = 0.99, alternative = "two.sided")
+
+```
 
 ```{r}
-resultado_power <- power.t.test(delta = 100,     # Diferencia a detectar
+resultado_power <- power.z.test(delta = 100,     # Diferencia a detectar
                                 sd = 175,        # Desviación estándar
                                 sig.level = 0.05,# Nivel de significancia (5%)
                                 power = 0.99,    # Potencia (99%)
@@ -372,85 +384,86 @@ ggplot(celu_dataset, aes(x = `Company Name`, fill = High_Battery)) +
 
 
 
-## Ejercicio F: Ejercicios Adicionales de Tamaño de Muestra
-
-### i) Diferencia a detectar
-
-```r
-power.t.test(delta=0.5, sd=1, power=0.9, sig.level=0.05,
-             alternative="two.sided", type="one.sample")
-```
-
-Código en R:
-
-```{r}
-power.t.test(delta = 0.5,
-             sd = 1,
-             power = 0.9,
-             sig.level = 0.05,
-             alternative = "two.sided",
-             type = "one.sample")
-```
-
-El resultado muestra el tamaño muestral aproximado.
-
-### ii) Variar \(\alpha\)
-
-Si cambiamos \(\alpha\), por ejemplo a 0.01 o 0.10, la función `power.t.test` mostrará cómo varía `n`.  
-- A menor \(\alpha\), normalmente se **incrementa** el tamaño muestral requerido (hay que ser más “estricto”).
-
-### iii) Discusión
-
-- Si \(\alpha\) cambia y dejamos `n` fijo, afectará \(\beta\).  
-  - **Reducir \(\alpha\)** sin cambiar \(n\) suele **aumentar \(\beta\)** (menos poder).  
-- Si aumentamos \(n\), en general **disminuye \(\beta\)** (más potencia).
-
-
-
-## Ejercicio G: Bootstrap para Intervalos de Confianza
-
-Suponiendo que elegimos `Launched Price (USA)_USD` como columna numérica positiva.
-
-### Procedimiento Bootstrap
-
-1. Tomamos muchas muestras (con reemplazo) de los datos de precio.  
-2. Calculamos la media de cada muestra.  
-3. Obtenemos la distribución bootstrap de la media.  
-4. Estimamos el IC al 95% con percentiles 2.5% y 97.5%.
-
 ```{r}
 set.seed(123)  # Para reproducibilidad
 
 # Vector de precios (eliminando NA)
 precios <- na.omit(celu_dataset$`Launched Price (USA)_USD`)
 
-B <- 1000  # número de remuestreos
-boot_means <- numeric(B)
+B <- 10000  # número de remuestreos
+boot_iqrs <- numeric(B)  # vector para guardar los IQRs
 
+# Bootstrap: obtener IQRs de muestras con reemplazo
 for(i in 1:B) {
   sample_indices <- sample(seq_along(precios), size = length(precios), replace = TRUE)
   boot_sample <- precios[sample_indices]
-  boot_means[i] <- mean(boot_sample)
+  boot_iqrs[i] <- IQR(boot_sample)  # cálculo del IQR
 }
 
-# IC al 95% (percentiles 2.5% y 97.5%)
-IC_95 <- quantile(boot_means, probs = c(0.025, 0.975))
-IC_95
-```
+# a) IQR calculado sobre todos los datos
+iqr_original <- IQR(precios)
+iqr_original
 
-### Visualización de la distribución bootstrap
+# c) Intervalo de confianza al 95% (percentiles 2.5% y 97.5%)
+IC_95 <- quantile(boot_iqrs, probs = c(0.025, 0.975))
+IC_95
+
+```
+```{r}
+library(ggplot2)
+
+ggplot(data.frame(boot_iqrs), aes(x = boot_iqrs)) +
+  geom_histogram(bins = 30, fill = "skyblue", color = "black") +
+  geom_vline(xintercept = IC_95[1], linetype = "dashed", color = "red") +
+  geom_vline(xintercept = IC_95[2], linetype = "dashed", color = "red") +
+  geom_vline(xintercept = iqr_original, linetype = "solid", color = "blue") +
+  labs(title = "Distribución Bootstrap del IQR del Precio (USD)",
+       x = "IQR (Bootstrap)",
+       y = "Frecuencia") +
+  theme_minimal()
+
+```
+# Distancias
 
 ```{r}
-# Histograma de las medias bootstrap
-ggplot(data.frame(boot_means), aes(x = boot_means)) +
-  geom_histogram(bins=30) +
-  geom_vline(xintercept = IC_95[1], linetype = "dashed") +
-  geom_vline(xintercept = IC_95[2], linetype = "dashed") +
-  labs(title = "Distribucion Bootstrap de la Media del Precio (USD)",
-       x = "Media (Bootstrap)",
-       y = "Frecuencia")
-```
+# Seleccionamos las columnas requeridas y estandarizamos
+cam_cols <- c("Back Camera_MP", "Front Camera_MP", "Mobile Weight_g")
 
-Con esto, se obtiene un intervalo de confianza no paramétrico para la media.
+datos_std <- celu_dataset %>%
+  select(all_of(cam_cols)) %>%
+  na.omit() %>%
+  scale()
+
+# a) Distancias entre Back y Front Camera
+mat_bf <- datos_std[, c("Back Camera_MP", "Front Camera_MP")]
+
+dist_bf_euclid <- dist(mat_bf, method = "euclidean")
+
+mean_bf_euclid <- mean(dist_bf_euclid)
+
+# b) Otras combinaciones
+mat_bw <- datos_std[, c("Back Camera_MP", "Mobile Weight_g")]
+mat_fw <- datos_std[, c("Front Camera_MP", "Mobile Weight_g")]
+
+mean_bw_euclid <- mean(dist(mat_bw, method = "euclidean"))
+mean_fw_euclid <- mean(dist(mat_fw, method = "euclidean"))
+
+# c) Correlaciones
+cor_bf <- cor(celu_dataset$`Back Camera_MP`, celu_dataset$`Front Camera_MP`, use = "complete.obs")
+cor_bw <- cor(celu_dataset$`Back Camera_MP`, celu_dataset$`Mobile Weight_g`, use = "complete.obs")
+cor_fw <- cor(celu_dataset$`Front Camera_MP`, celu_dataset$`Mobile Weight_g`, use = "complete.obs")
+
+# d) Resumen
+resultados <- tibble::tibble(
+  Variables = c("Back vs Front Camera", 
+                "Back Camera vs Weight", 
+                "Front Camera vs Weight"),
+  Distancia_Euclid = c(mean_bf_euclid, mean_bw_euclid, mean_fw_euclid),
+  Correlacion_Pearson = c(cor_bf, cor_bw, cor_fw)
+)
+
+resultados
+
+```
 
 
